@@ -2,6 +2,8 @@
 
 A Model Context Protocol (MCP) server implementation that provides access to Linear's issue tracking system through a standardized interface.
 
+<a href="https://glama.ai/mcp/servers/83wkbjoqvn"><img width="380" height="200" src="https://glama.ai/mcp/servers/83wkbjoqvn/badge" alt="Linear Server MCP server" /></a>
+
 ## Features
 
 * Query Linear issues by ID or key
