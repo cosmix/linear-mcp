@@ -7,7 +7,9 @@
   "scripts": {
     "build": "vite build && chmod +x build/index.js",
     "start": "bun run build/index.js",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
   },
   "keywords": ["mcp", "linear", "issue-tracking"],
   "author": "Dimosthenis Kaponis",

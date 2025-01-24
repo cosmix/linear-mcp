@@ -7,7 +7,8 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { LinearClient } from '@linear/sdk';
+import { LinearAPIService } from './services/linear-api.js';
+import { isGetIssueArgs, isSearchIssuesArgs } from './types/linear.js';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
@@ -15,27 +16,9 @@ if (!API_KEY) {
   throw new Error('LINEAR_API_KEY environment variable is required');
 }
 
-interface GetIssueArgs {
-  issueId: string;
-}
-
-interface SearchIssuesArgs {
-  query: string;
-}
-
-const isGetIssueArgs = (args: unknown): args is GetIssueArgs =>
-  typeof args === 'object' &&
-  args !== null &&
-  typeof (args as GetIssueArgs).issueId === 'string';
-
-const isSearchIssuesArgs = (args: unknown): args is SearchIssuesArgs =>
-  typeof args === 'object' &&
-  args !== null &&
-  typeof (args as SearchIssuesArgs).query === 'string';
-
 class LinearServer {
   private server: Server;
-  private linearClient: LinearClient;
+  private linearAPI: LinearAPIService;
 
   constructor() {
     this.server = new Server(
@@ -50,9 +33,7 @@ class LinearServer {
       }
     );
 
-    this.linearClient = new LinearClient({
-      apiKey: API_KEY,
-    });
+    this.linearAPI = new LinearAPIService(API_KEY as string);
 
     this.setupToolHandlers();
     
@@ -128,35 +109,12 @@ class LinearServer {
       throw new McpError(ErrorCode.InvalidParams, 'Invalid get_issue arguments');
     }
 
-    const issue = await this.linearClient.issue(args.issueId);
-    if (!issue) {
-      throw new McpError(ErrorCode.InvalidRequest, `Issue not found: ${args.issueId}`);
-    }
-
-    const [state, assignee] = await Promise.all([
-      issue.state,
-      issue.assignee
-    ]);
-
+    const issue = await this.linearAPI.getIssue(args);
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(
-            {
-              id: issue.id,
-              identifier: issue.identifier,
-              title: issue.title,
-              description: issue.description,
-              status: state?.name,
-              assignee: assignee?.name,
-              priority: issue.priority,
-              createdAt: issue.createdAt,
-              updatedAt: issue.updatedAt,
-            },
-            null,
-            2
-          ),
+          text: JSON.stringify(issue, null, 2),
         },
       ],
     };
@@ -170,37 +128,12 @@ class LinearServer {
       );
     }
 
-    const issues = await this.linearClient.issues({
-      filter: {
-        or: [
-          { title: { contains: args.query } },
-          { description: { contains: args.query } },
-        ],
-      },
-    });
-
-    const issuesWithDetails = await Promise.all(
-      issues.nodes.map(async (issue) => {
-        const [state, assignee] = await Promise.all([
-          issue.state,
-          issue.assignee
-        ]);
-        return {
-          id: issue.id,
-          identifier: issue.identifier,
-          title: issue.title,
-          status: state?.name,
-          assignee: assignee?.name,
-          priority: issue.priority,
-        };
-      })
-    );
-
+    const issues = await this.linearAPI.searchIssues(args);
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(issuesWithDetails, null, 2),
+          text: JSON.stringify(issues, null, 2),
         },
       ],
     };
