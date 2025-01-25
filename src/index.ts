@@ -24,7 +24,7 @@ class LinearServer {
     this.server = new Server(
       {
         name: 'linear-mcp',
-        version: '0.1.0',
+        version: '0.2.0',
       },
       {
         capabilities: {
@@ -50,7 +50,7 @@ class LinearServer {
       tools: [
         {
           name: 'get_issue',
-          description: 'Get detailed information about a specific Linear issue',
+          description: 'Get detailed information about a specific Linear issue including optional relationships and cleaned content',
           inputSchema: {
             type: 'object',
             properties: {
@@ -58,19 +58,29 @@ class LinearServer {
                 type: 'string',
                 description: 'The ID or key of the Linear issue',
               },
+              includeRelationships: {
+                type: 'boolean',
+                description: 'Include comments, parent/sub-issues, and related issues. Also extracts mentions from content.',
+                default: false,
+              },
             },
             required: ['issueId'],
           },
         },
         {
           name: 'search_issues',
-          description: 'Search for Linear issues using a query string',
+          description: 'Search for Linear issues using a query string with enhanced metadata',
           inputSchema: {
             type: 'object',
             properties: {
               query: {
                 type: 'string',
                 description: 'Search query for Linear issues',
+              },
+              includeRelationships: {
+                type: 'boolean',
+                description: 'Include additional metadata like team and labels in search results',
+                default: false,
               },
             },
             required: ['query'],
