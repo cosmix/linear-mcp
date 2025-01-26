@@ -99,14 +99,14 @@ Create a new Linear issue or subissue.
 Input Schema:
 ```json
 {
-  "teamId": "string",     // Required unless parentId is provided
-  "title": "string",      // Required
-  "description": "string",
-  "parentId": "string",   // Optional, creates a subissue if provided
+  "teamId": "string",     
+  "title": "string",      
+  "description": "string"
+  "parentId": "string",   
   "status": "string",
-  "priority": "number",   // 0-4
+  "priority": "number",   
   "assigneeId": "string",
-  "labelIds": ["string"]  // Optional, array of label IDs to attach
+  "labelIds": ["string"]  
 }
 ```
 
@@ -133,13 +133,13 @@ Update an existing Linear issue.
 Input Schema:
 ```json
 {
-  "issueId": "string",    // Required, ID or key of the issue to update
-  "title": "string",      // Optional
-  "description": "string", // Optional
-  "status": "string",     // Optional
-  "priority": "number",   // Optional, 0-4
-  "assigneeId": "string", // Optional
-  "labelIds": ["string"]  // Optional, array of label IDs
+  "issueId": "string",    
+  "title": "string",      
+  "description": "string",
+  "status": "string",     
+  "priority": "number",   
+  "assigneeId": "string", 
+  "labelIds": ["string"]  
 }
 ```
 
@@ -151,7 +151,7 @@ Input Schema:
 ```json
 {
   "issueId": "string",
-  "includeRelationships": "boolean"  // Optional, includes comments, relationships, and labels
+  "includeRelationships": "boolean"  
 }
 ```
 
@@ -163,7 +163,7 @@ Input Schema:
 ```json
 {
   "query": "string",
-  "includeRelationships": "boolean"  // Optional, includes additional metadata like team and labels
+  "includeRelationships": "boolean"  
 }
 ```
 
@@ -174,7 +174,7 @@ Get a list of Linear teams with optional name/key filtering.
 Input Schema:
 ```json
 {
-  "nameFilter": "string"  // Optional, filter by team name or key
+  "nameFilter": "string"  
 }
 ```
 
