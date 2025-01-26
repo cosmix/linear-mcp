@@ -7,16 +7,22 @@ describe('LinearAPIService', () => {
   let mockClient: LinearClientInterface;
   let issueFn: ReturnType<typeof mock>;
   let issuesFn: ReturnType<typeof mock>;
+  let createIssueFn: ReturnType<typeof mock>;
+  let teamsFn: ReturnType<typeof mock>;
 
   beforeEach(() => {
     // Setup mocks
     issueFn = mock(() => Promise.resolve(null));
     issuesFn = mock(() => Promise.resolve({ nodes: [] }));
+    createIssueFn = mock(() => Promise.resolve({ success: true, issue: null }));
+    teamsFn = mock(() => Promise.resolve({ nodes: [] }));
     
     // Create mock client
     mockClient = {
       issue: issueFn,
-      issues: issuesFn
+      issues: issuesFn,
+      createIssue: createIssueFn,
+      teams: teamsFn
     };
     
     // Create service instance with mock client
@@ -37,6 +43,184 @@ describe('LinearAPIService', () => {
     test('creates instance with client interface', () => {
       expect(service).toBeInstanceOf(LinearAPIService);
       expect(service).toBeDefined();
+    });
+  });
+
+  describe('createIssue', () => {
+    test('creates issue with required fields', async () => {
+      const mockCreatedIssue = {
+        id: 'issue-1',
+        identifier: 'TEST-1',
+        title: 'Test Issue',
+        description: 'Test Description',
+        priority: 1,
+        createdAt: new Date('2025-01-24'),
+        updatedAt: new Date('2025-01-24'),
+        state: Promise.resolve({ name: 'Backlog' }),
+        assignee: Promise.resolve(null),
+        team: Promise.resolve({ name: 'Engineering' }),
+        creator: Promise.resolve({ name: 'John Doe' }),
+        labels: () => Promise.resolve({ nodes: [] }),
+        parent: Promise.resolve(null),
+        children: () => Promise.resolve({ nodes: [] }),
+        relations: () => Promise.resolve({ nodes: [] }),
+      };
+
+      createIssueFn.mockImplementation(async () => ({
+        success: true,
+        issue: mockCreatedIssue
+      }));
+      issueFn.mockImplementation(async () => mockCreatedIssue);
+
+      const result = await service.createIssue({
+        teamId: 'team-1',
+        title: 'Test Issue',
+        description: 'Test Description'
+      });
+
+      expect(createIssueFn).toHaveBeenCalledWith({
+        teamId: 'team-1',
+        title: 'Test Issue',
+        description: 'Test Description',
+        priority: undefined,
+        assigneeId: undefined,
+        parentId: undefined
+      });
+
+      expect(result).toEqual({
+        id: 'issue-1',
+        identifier: 'TEST-1',
+        title: 'Test Issue',
+        description: 'Test Description',
+        status: 'Backlog',
+        assignee: undefined,
+        priority: 1,
+        createdAt: '2025-01-24T00:00:00.000Z',
+        updatedAt: '2025-01-24T00:00:00.000Z',
+        teamName: 'Engineering',
+        creatorName: 'John Doe',
+        labels: [],
+        parent: undefined,
+        subIssues: [],
+        relationships: [],
+        mentionedIssues: [],
+        mentionedUsers: [],
+        estimate: undefined,
+        dueDate: undefined,
+        comments: undefined
+      });
+    });
+
+    test('creates subissue with parent', async () => {
+      const mockParent = {
+        id: 'parent-1',
+        identifier: 'TEST-1',
+        title: 'Parent Issue',
+        team: Promise.resolve({ id: 'team-1', name: 'Engineering' })
+      };
+
+      const mockCreatedIssue = {
+        id: 'issue-2',
+        identifier: 'TEST-2',
+        title: 'Child Issue',
+        description: 'Test Description',
+        priority: 1,
+        createdAt: new Date('2025-01-24'),
+        updatedAt: new Date('2025-01-24'),
+        state: Promise.resolve({ name: 'Backlog' }),
+        assignee: Promise.resolve(null),
+        team: Promise.resolve({ name: 'Engineering' }),
+        creator: Promise.resolve({ name: 'John Doe' }),
+        labels: () => Promise.resolve({ nodes: [] }),
+        parent: Promise.resolve(mockParent),
+        children: () => Promise.resolve({ nodes: [] }),
+        relations: () => Promise.resolve({ nodes: [] }),
+      };
+
+      issueFn.mockImplementation(async (id) => {
+        if (id === 'parent-1' || id === 'TEST-1') return mockParent;
+        if (id === 'issue-2' || id === 'TEST-2') return mockCreatedIssue;
+        return null;
+      });
+
+      createIssueFn.mockImplementation(async () => ({
+        success: true,
+        issue: mockCreatedIssue
+      }));
+
+      const result = await service.createIssue({
+        title: 'Child Issue',
+        description: 'Test Description',
+        parentId: 'TEST-1'
+      });
+
+      expect(createIssueFn).toHaveBeenCalledWith({
+        teamId: 'team-1',
+        title: 'Child Issue',
+        description: 'Test Description',
+        priority: undefined,
+        assigneeId: undefined,
+        parentId: 'TEST-1'
+      });
+
+      expect(result).toEqual({
+        id: 'issue-2',
+        identifier: 'TEST-2',
+        title: 'Child Issue',
+        description: 'Test Description',
+        status: 'Backlog',
+        assignee: undefined,
+        priority: 1,
+        createdAt: '2025-01-24T00:00:00.000Z',
+        updatedAt: '2025-01-24T00:00:00.000Z',
+        teamName: 'Engineering',
+        creatorName: 'John Doe',
+        labels: [],
+        parent: {
+          id: 'parent-1',
+          identifier: 'TEST-1',
+          title: 'Parent Issue'
+        },
+        subIssues: [],
+        relationships: [
+          {
+            type: 'parent',
+            issueId: 'parent-1',
+            identifier: 'TEST-1',
+            title: 'Parent Issue'
+          }
+        ],
+        mentionedIssues: [],
+        mentionedUsers: [],
+        estimate: undefined,
+        dueDate: undefined,
+        comments: undefined
+      });
+    });
+
+    test('throws error when parent issue not found', async () => {
+      issueFn.mockImplementation(async () => null);
+
+      await expect(service.createIssue({
+        title: 'Child Issue',
+        parentId: 'NONEXISTENT'
+      })).rejects.toThrow(
+        new McpError(ErrorCode.InvalidRequest, 'Parent issue not found: NONEXISTENT')
+      );
+
+      expect(createIssueFn).not.toHaveBeenCalled();
+    });
+
+    test('throws error when create issue fails', async () => {
+      createIssueFn.mockImplementation(async () => ({
+        success: false,
+        issue: null
+      }));
+
+      await expect(service.createIssue({
+        teamId: 'team-1',
+        title: 'Test Issue'
+      })).rejects.toThrow('MCP error -32603: Failed to create issue: No issue returned');
     });
   });
 
@@ -205,6 +389,231 @@ describe('LinearAPIService', () => {
       await expect(service.getIssue({ issueId: 'NONEXISTENT' }))
         .rejects
         .toThrow(new McpError(ErrorCode.InvalidRequest, 'Issue not found: NONEXISTENT'));
+    });
+  });
+
+  describe('getTeams', () => {
+    test('returns all teams when no filter provided', async () => {
+      const mockTeams = {
+        nodes: [
+          { id: 'team-1', name: 'Engineering', key: 'ENG', description: 'Engineering team' },
+          { id: 'team-2', name: 'Design', key: 'DES', description: 'Design team' }
+        ]
+      };
+
+      teamsFn.mockImplementation(async () => mockTeams);
+
+      const result = await service.getTeams({});
+
+      expect(result).toEqual([
+        { id: 'team-1', name: 'Engineering', key: 'ENG', description: 'Engineering team' },
+        { id: 'team-2', name: 'Design', key: 'DES', description: 'Design team' }
+      ]);
+      expect(teamsFn).toHaveBeenCalled();
+    });
+
+    test('filters teams by name', async () => {
+      const mockTeams = {
+        nodes: [
+          { id: 'team-1', name: 'Engineering', key: 'ENG', description: 'Engineering team' },
+          { id: 'team-2', name: 'Design', key: 'DES', description: 'Design team' }
+        ]
+      };
+
+      teamsFn.mockImplementation(async () => mockTeams);
+
+      const result = await service.getTeams({ nameFilter: 'eng' });
+
+      expect(result).toEqual([
+        { id: 'team-1', name: 'Engineering', key: 'ENG', description: 'Engineering team' }
+      ]);
+      expect(teamsFn).toHaveBeenCalled();
+    });
+
+    test('filters teams by key', async () => {
+      const mockTeams = {
+        nodes: [
+          { id: 'team-1', name: 'Engineering', key: 'ENG', description: 'Engineering team' },
+          { id: 'team-2', name: 'Design', key: 'DES', description: 'Design team' }
+        ]
+      };
+
+      teamsFn.mockImplementation(async () => mockTeams);
+
+      const result = await service.getTeams({ nameFilter: 'des' });
+
+      expect(result).toEqual([
+        { id: 'team-2', name: 'Design', key: 'DES', description: 'Design team' }
+      ]);
+      expect(teamsFn).toHaveBeenCalled();
+    });
+
+    test('handles empty teams response', async () => {
+      teamsFn.mockImplementation(async () => ({ nodes: [] }));
+
+      const result = await service.getTeams({});
+
+      expect(result).toEqual([]);
+      expect(teamsFn).toHaveBeenCalled();
+    });
+
+    test('handles API errors', async () => {
+      teamsFn.mockImplementation(async () => {
+        throw new Error('API Error');
+      });
+
+      await expect(service.getTeams({}))
+        .rejects
+        .toThrow(new McpError(ErrorCode.InternalError, 'Failed to fetch teams: API Error'));
+    });
+  });
+
+  describe('updateIssue', () => {
+    test('updates issue with all fields', async () => {
+      const mockUpdatedIssue = {
+        id: 'issue-1',
+        identifier: 'TEST-1',
+        title: 'Updated Title',
+        description: 'Updated Description',
+        priority: 2,
+        createdAt: new Date('2025-01-24'),
+        updatedAt: new Date('2025-01-24'),
+        state: Promise.resolve({ name: 'In Progress' }),
+        assignee: Promise.resolve({ name: 'Jane Smith' }),
+        team: Promise.resolve({ name: 'Engineering' }),
+        creator: Promise.resolve({ name: 'John Doe' }),
+        labels: () => Promise.resolve({ nodes: [{ name: 'feature' }] }),
+        parent: Promise.resolve(null),
+        children: () => Promise.resolve({ nodes: [] }),
+        relations: () => Promise.resolve({ nodes: [] }),
+        update: mock(() => Promise.resolve())
+      };
+
+      issueFn.mockImplementation(async () => mockUpdatedIssue);
+
+      const result = await service.updateIssue({
+        issueId: 'TEST-1',
+        title: 'Updated Title',
+        description: 'Updated Description',
+        status: 'In Progress',
+        priority: 2,
+        assigneeId: 'user-2',
+        labelIds: ['label-2']
+      });
+
+      expect(mockUpdatedIssue.update).toHaveBeenCalledWith({
+        title: 'Updated Title',
+        description: 'Updated Description',
+        status: 'In Progress',
+        priority: 2,
+        assigneeId: 'user-2',
+        labelIds: ['label-2']
+      });
+
+      expect(result).toEqual({
+        id: 'issue-1',
+        identifier: 'TEST-1',
+        title: 'Updated Title',
+        description: 'Updated Description',
+        status: 'In Progress',
+        assignee: 'Jane Smith',
+        priority: 2,
+        createdAt: '2025-01-24T00:00:00.000Z',
+        updatedAt: '2025-01-24T00:00:00.000Z',
+        teamName: 'Engineering',
+        creatorName: 'John Doe',
+        labels: ['feature'],
+        parent: undefined,
+        subIssues: [],
+        relationships: [],
+        mentionedIssues: [],
+        mentionedUsers: [],
+        estimate: undefined,
+        dueDate: undefined,
+        comments: undefined
+      });
+    });
+
+    test('updates issue with partial fields', async () => {
+      const mockUpdatedIssue = {
+        id: 'issue-1',
+        identifier: 'TEST-1',
+        title: 'Original Title',
+        description: 'Updated Description',
+        priority: 1,
+        createdAt: new Date('2025-01-24'),
+        updatedAt: new Date('2025-01-24'),
+        state: Promise.resolve({ name: 'Backlog' }),
+        assignee: Promise.resolve({ name: 'John Doe' }),
+        team: Promise.resolve({ name: 'Engineering' }),
+        creator: Promise.resolve({ name: 'John Doe' }),
+        labels: () => Promise.resolve({ nodes: [] }),
+        parent: Promise.resolve(null),
+        children: () => Promise.resolve({ nodes: [] }),
+        relations: () => Promise.resolve({ nodes: [] }),
+        update: mock(() => Promise.resolve())
+      };
+
+      issueFn.mockImplementation(async () => mockUpdatedIssue);
+
+      const result = await service.updateIssue({
+        issueId: 'TEST-1',
+        description: 'Updated Description'
+      });
+
+      expect(mockUpdatedIssue.update).toHaveBeenCalledWith({
+        description: 'Updated Description'
+      });
+
+      expect(result).toEqual({
+        id: 'issue-1',
+        identifier: 'TEST-1',
+        title: 'Original Title',
+        description: 'Updated Description',
+        status: 'Backlog',
+        assignee: 'John Doe',
+        priority: 1,
+        createdAt: '2025-01-24T00:00:00.000Z',
+        updatedAt: '2025-01-24T00:00:00.000Z',
+        teamName: 'Engineering',
+        creatorName: 'John Doe',
+        labels: [],
+        parent: undefined,
+        subIssues: [],
+        relationships: [],
+        mentionedIssues: [],
+        mentionedUsers: [],
+        estimate: undefined,
+        dueDate: undefined,
+        comments: undefined
+      });
+    });
+
+    test('throws error when issue not found', async () => {
+      issueFn.mockImplementation(async () => null);
+
+      await expect(service.updateIssue({
+        issueId: 'NONEXISTENT',
+        title: 'Updated Title'
+      })).rejects.toThrow(
+        'MCP error -32603: Failed to update issue: MCP error -32600: Issue not found: NONEXISTENT'
+      );
+    });
+
+    test('throws error when update fails', async () => {
+      const mockIssue = {
+        id: 'issue-1',
+        update: mock(() => Promise.reject(new Error('Update failed')))
+      };
+
+      issueFn.mockImplementation(async () => mockIssue);
+
+      await expect(service.updateIssue({
+        issueId: 'TEST-1',
+        title: 'Updated Title'
+      })).rejects.toThrow(
+        new McpError(ErrorCode.InternalError, 'Failed to update issue: Update failed')
+      );
     });
   });
 

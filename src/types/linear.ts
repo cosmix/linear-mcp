@@ -1,6 +1,10 @@
 import { LinearClient } from '@linear/sdk';
 
 // Tool argument interfaces
+export interface GetTeamsArgs {
+  nameFilter?: string; // Optional filter to search by team name
+}
+
 export interface GetIssueArgs {
   issueId: string;
   includeRelationships?: boolean; // Include comments, parent/sub-issues, and related issues
@@ -9,6 +13,27 @@ export interface GetIssueArgs {
 export interface SearchIssuesArgs {
   query: string;
   includeRelationships?: boolean;
+}
+
+export interface CreateIssueArgs {
+  teamId?: string;  // Optional if parentId is provided
+  title: string;
+  description?: string;
+  parentId?: string;  // Optional parent issue ID, not identifier
+  status?: string;
+  priority?: number;
+  assigneeId?: string;
+  labelIds?: string[];  // Optional array of label IDs to attach
+}
+
+export interface UpdateIssueArgs {
+  issueId: string;      // ID or key of issue to update
+  title?: string;       // New title
+  description?: string; // New description
+  status?: string;      // New status
+  priority?: number;    // New priority
+  assigneeId?: string;  // New assignee
+  labelIds?: string[];  // New labels
 }
 
 // Linear data interfaces
@@ -63,6 +88,13 @@ export interface LinearIssue {
   mentionedUsers?: string[]; // Usernames mentioned in description/comments
 }
 
+export interface LinearTeam {
+  id: string;
+  name: string;
+  key: string;
+  description?: string;
+}
+
 export interface LinearIssueSearchResult {
   id: string;
   identifier: string;
@@ -75,6 +107,12 @@ export interface LinearIssueSearchResult {
 }
 
 // Type guards
+export const isGetTeamsArgs = (args: unknown): args is GetTeamsArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  (typeof (args as GetTeamsArgs).nameFilter === 'undefined' || 
+   typeof (args as GetTeamsArgs).nameFilter === 'string');
+
 export const isGetIssueArgs = (args: unknown): args is GetIssueArgs =>
   typeof args === 'object' &&
   args !== null &&
@@ -84,6 +122,33 @@ export const isSearchIssuesArgs = (args: unknown): args is SearchIssuesArgs =>
   typeof args === 'object' &&
   args !== null &&
   typeof (args as SearchIssuesArgs).query === 'string';
+
+export const isCreateIssueArgs = (args: unknown): args is CreateIssueArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as CreateIssueArgs).title === 'string' &&
+  (typeof (args as CreateIssueArgs).teamId === 'undefined' || typeof (args as CreateIssueArgs).teamId === 'string') &&
+  (typeof (args as CreateIssueArgs).description === 'undefined' || typeof (args as CreateIssueArgs).description === 'string') &&
+  (typeof (args as CreateIssueArgs).parentId === 'undefined' || typeof (args as CreateIssueArgs).parentId === 'string') &&
+  (typeof (args as CreateIssueArgs).status === 'undefined' || typeof (args as CreateIssueArgs).status === 'string') &&
+  (typeof (args as CreateIssueArgs).priority === 'undefined' || typeof (args as CreateIssueArgs).priority === 'number') &&
+  (typeof (args as CreateIssueArgs).assigneeId === 'undefined' || typeof (args as CreateIssueArgs).assigneeId === 'string') &&
+  (typeof (args as CreateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as CreateIssueArgs).labelIds) && 
+    (args as CreateIssueArgs).labelIds!.every(id => typeof id === 'string'))) &&
+  // Ensure either teamId or parentId is provided
+  ((args as CreateIssueArgs).teamId !== undefined || (args as CreateIssueArgs).parentId !== undefined);
+
+export const isUpdateIssueArgs = (args: unknown): args is UpdateIssueArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as UpdateIssueArgs).issueId === 'string' &&
+  (typeof (args as UpdateIssueArgs).title === 'undefined' || typeof (args as UpdateIssueArgs).title === 'string') &&
+  (typeof (args as UpdateIssueArgs).description === 'undefined' || typeof (args as UpdateIssueArgs).description === 'string') &&
+  (typeof (args as UpdateIssueArgs).status === 'undefined' || typeof (args as UpdateIssueArgs).status === 'string') &&
+  (typeof (args as UpdateIssueArgs).priority === 'undefined' || typeof (args as UpdateIssueArgs).priority === 'number') &&
+  (typeof (args as UpdateIssueArgs).assigneeId === 'undefined' || typeof (args as UpdateIssueArgs).assigneeId === 'string') &&
+  (typeof (args as UpdateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as UpdateIssueArgs).labelIds) && 
+    (args as UpdateIssueArgs).labelIds!.every(id => typeof id === 'string')));
 
 // Helper functions for data cleaning
 export const extractMentions = (text: string | null | undefined): { issues: string[]; users: string[] } => {

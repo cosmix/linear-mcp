@@ -4,18 +4,21 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 
 ## Features
 
-* Query Linear issues by ID or key
-* Search issues using custom queries
+* Create new issues and subissues with label support
+* Update existing issues with full field modification
+* Query Linear issues by ID or key with optional relationships
+* Search issues using custom queries with enhanced metadata
 * Type-safe operations using Linear's official SDK
 * Comprehensive error handling
 * Rate limit handling
 * Clean data transformation
+* Parent/child relationship tracking with team inheritance
+* Label management and synchronization
 
 ## Prerequisites
 
-* Bun runtime
-* TypeScript
-* Linear account with API access
+- [Bun](https://bun.sh) runtime (v1.0.0 or higher)
+- Linear account with API access
 
 ## Environment Variables
 
@@ -89,14 +92,66 @@ bun run build
 
 ## Available MCP Tools
 
-### get_issue
+### create_issue
 
-Get detailed information about a specific Linear issue.
+Create a new Linear issue or subissue.
 
 Input Schema:
 ```json
 {
-  "issueId": "string"
+  "teamId": "string",     // Required unless parentId is provided
+  "title": "string",      // Required
+  "description": "string",
+  "parentId": "string",   // Optional, creates a subissue if provided
+  "status": "string",
+  "priority": "number",   // 0-4
+  "assigneeId": "string",
+  "labelIds": ["string"]  // Optional, array of label IDs to attach
+}
+```
+
+Example creating a new issue:
+```json
+{
+  "teamId": "team-123",
+  "title": "New Feature Request"
+}
+```
+
+Example creating a subissue:
+```json
+{
+  "parentId": "ISSUE-123",
+  "title": "Subtask"
+}
+```
+
+### update_issue
+
+Update an existing Linear issue.
+
+Input Schema:
+```json
+{
+  "issueId": "string",    // Required, ID or key of the issue to update
+  "title": "string",      // Optional
+  "description": "string", // Optional
+  "status": "string",     // Optional
+  "priority": "number",   // Optional, 0-4
+  "assigneeId": "string", // Optional
+  "labelIds": ["string"]  // Optional, array of label IDs
+}
+```
+
+### get_issue
+
+Get detailed information about a specific Linear issue with optional relationships.
+
+Input Schema:
+```json
+{
+  "issueId": "string",
+  "includeRelationships": "boolean"  // Optional, includes comments, relationships, and labels
 }
 ```
 
@@ -107,14 +162,27 @@ Search for Linear issues using a query string.
 Input Schema:
 ```json
 {
-  "query": "string" 
+  "query": "string",
+  "includeRelationships": "boolean"  // Optional, includes additional metadata like team and labels
+}
+```
+
+### get_teams
+
+Get a list of Linear teams with optional name/key filtering.
+
+Input Schema:
+```json
+{
+  "nameFilter": "string"  // Optional, filter by team name or key
 }
 ```
 
 ## Technical Details
 
 * Built with TypeScript in strict mode
-* Uses Linear's official SDK
+* Uses Linear's official SDK (@linear/sdk)
+* Uses MCP SDK (@modelcontextprotocol/sdk 1.4.0)
 * Authentication via API tokens
 * Comprehensive error handling
 * Rate limiting considerations
@@ -122,6 +190,11 @@ Input Schema:
 * ESM modules throughout
 * Vite build system
 * Type-safe operations
+* Data cleaning features:
+  * Issue mention extraction (ABC-123 format)
+  * User mention extraction (@username format)
+  * Markdown content cleaning
+  * Content optimization for AI context
 
 ## Error Handling
 
@@ -132,10 +205,12 @@ The server implements a comprehensive error handling strategy:
 * Detailed error messages with status codes
 * Error details logging to console
 * Input validation for all parameters
+* Label validation and synchronization
 * Safe error propagation through MCP protocol
 * Rate limit detection and handling
 * Authentication error handling
 * Invalid query handling
+* Team inheritance validation for subissues
 
 ## LICENCE
 

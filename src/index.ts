@@ -8,7 +8,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LinearAPIService } from './services/linear-api.js';
-import { isGetIssueArgs, isSearchIssuesArgs } from './types/linear.js';
+import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs } from './types/linear.js';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
@@ -24,7 +24,7 @@ class LinearServer {
     this.server = new Server(
       {
         name: 'linear-mcp',
-        version: '0.2.0',
+        version: '0.3.0',
       },
       {
         capabilities: {
@@ -48,6 +48,92 @@ class LinearServer {
   private setupToolHandlers() {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
+        {
+          name: 'create_issue',
+          description: 'Create a new Linear issue with optional parent linking',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              teamId: {
+                type: 'string',
+                description: 'ID of the team to create the issue in. Required unless parentId is provided.',
+              },
+              title: {
+                type: 'string',
+                description: 'Title of the issue',
+              },
+              description: {
+                type: 'string',
+                description: 'Description of the issue (markdown supported)',
+              },
+              parentId: {
+                type: 'string',
+                description: 'ID of the parent issue. If provided, creates a subissue.',
+              },
+              status: {
+                type: 'string',
+                description: 'Status of the issue',
+              },
+              priority: {
+                type: 'number',
+                description: 'Priority of the issue (0-4)',
+              },
+              assigneeId: {
+                type: 'string',
+                description: 'ID of the user to assign the issue to',
+              },
+              labelIds: {
+                type: 'array',
+                description: 'Array of label IDs to attach to the issue',
+                items: {
+                  type: 'string'
+                }
+              }
+            },
+            required: ['title'],
+          },
+        },
+        {
+          name: 'update_issue',
+          description: 'Update an existing Linear issue',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              issueId: {
+                type: 'string',
+                description: 'ID or key of the issue to update',
+              },
+              title: {
+                type: 'string',
+                description: 'New title for the issue',
+              },
+              description: {
+                type: 'string',
+                description: 'New description for the issue (markdown supported)',
+              },
+              status: {
+                type: 'string',
+                description: 'New status for the issue',
+              },
+              priority: {
+                type: 'number',
+                description: 'New priority for the issue (0-4)',
+              },
+              assigneeId: {
+                type: 'string',
+                description: 'ID of the new assignee',
+              },
+              labelIds: {
+                type: 'array',
+                description: 'New array of label IDs',
+                items: {
+                  type: 'string'
+                }
+              }
+            },
+            required: ['issueId'],
+          },
+        },
         {
           name: 'get_issue',
           description: 'Get detailed information about a specific Linear issue including optional relationships and cleaned content',
@@ -86,16 +172,35 @@ class LinearServer {
             required: ['query'],
           },
         },
+        {
+          name: 'get_teams',
+          description: 'Get a list of Linear teams with optional name/key filtering',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              nameFilter: {
+                type: 'string',
+                description: 'Optional filter to search by team name or key',
+              },
+            },
+          },
+        },
       ],
     }));
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       try {
         switch (request.params.name) {
+          case 'create_issue':
+            return await this.handleCreateIssue(request.params.arguments);
           case 'get_issue':
             return await this.handleGetIssue(request.params.arguments);
           case 'search_issues':
             return await this.handleSearchIssues(request.params.arguments);
+          case 'update_issue':
+            return await this.handleUpdateIssue(request.params.arguments);
+          case 'get_teams':
+            return await this.handleGetTeams(request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -130,6 +235,22 @@ class LinearServer {
     };
   }
 
+  private async handleCreateIssue(args: unknown) {
+    if (!isCreateIssueArgs(args)) {
+      throw new McpError(ErrorCode.InvalidParams, 'Invalid create_issue arguments');
+    }
+
+    const issue = await this.linearAPI.createIssue(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(issue, null, 2),
+        },
+      ],
+    };
+  }
+
   private async handleSearchIssues(args: unknown) {
     if (!isSearchIssuesArgs(args)) {
       throw new McpError(
@@ -144,6 +265,41 @@ class LinearServer {
         {
           type: 'text',
           text: JSON.stringify(issues, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleUpdateIssue(args: unknown) {
+    if (!isUpdateIssueArgs(args)) {
+      throw new McpError(ErrorCode.InvalidParams, 'Invalid update_issue arguments');
+    }
+
+    const issue = await this.linearAPI.updateIssue(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(issue, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleGetTeams(args: unknown) {
+    if (!isGetTeamsArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid get_teams arguments'
+      );
+    }
+
+    const teams = await this.linearAPI.getTeams(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(teams, null, 2),
         },
       ],
     };
