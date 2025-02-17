@@ -6,6 +6,7 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 
 * Create new issues and subissues with label support
 * Update existing issues with full field modification
+* Add comments to issues with markdown support
 * Query Linear issues by ID or key with optional relationships
 * Search issues using custom queries with enhanced metadata
 * Type-safe operations using Linear's official SDK
