@@ -22,7 +22,8 @@ describe('LinearAPIService', () => {
       issue: issueFn,
       issues: issuesFn,
       createIssue: createIssueFn,
-      teams: teamsFn
+      teams: teamsFn,
+      createComment: mock(() => Promise.resolve({ success: true, comment: null })) as any
     };
     
     // Create service instance with mock client
@@ -688,6 +689,92 @@ describe('LinearAPIService', () => {
 
       expect(results).toEqual([]);
       expect(issuesFn).toHaveBeenCalled();
+    });
+  });
+
+  describe('createComment', () => {
+    let createCommentFn: ReturnType<typeof mock>;
+
+    beforeEach(() => {
+      // Get reference to the createComment mock
+      createCommentFn = mockClient.createComment as ReturnType<typeof mock>;
+    });
+
+    test('creates comment with required fields', async () => {
+      const mockCreatedComment = {
+        id: 'comment-1',
+        body: 'Test comment mentioning TEST-2 and @jane',
+        createdAt: new Date('2025-01-24'),
+        updatedAt: new Date('2025-01-24'),
+        user: Promise.resolve({ id: 'user-1', name: 'John Doe' }),
+      };
+
+      // Mock issue existence check
+      const mockIssue = {
+        id: 'issue-1',
+        identifier: 'TEST-1',
+      };
+      issueFn.mockImplementation(async () => mockIssue);
+
+      // Mock comment creation
+      createCommentFn.mockImplementation(async () => ({
+        success: true,
+        comment: Promise.resolve(mockCreatedComment)
+      }));
+
+      const result = await service.createComment({
+        issueId: 'TEST-1',
+        body: 'Test comment mentioning TEST-2 and @jane'
+      });
+
+      expect(createCommentFn).toHaveBeenCalledWith({
+        issueId: 'issue-1',
+        body: 'Test comment mentioning TEST-2 and @jane'
+      });
+
+      expect(result).toEqual({
+        id: 'comment-1',
+        body: 'Test comment mentioning TEST-2 and @jane',
+        userId: 'user-1',
+        userName: 'John Doe',
+        createdAt: '2025-01-24T00:00:00.000Z',
+        updatedAt: '2025-01-24T00:00:00.000Z',
+      });
+    });
+
+    test('throws error when issue not found', async () => {
+      issueFn.mockImplementation(async () => null);
+
+      await expect(service.createComment({
+        issueId: 'NONEXISTENT',
+        body: 'Test comment'
+      })).rejects.toThrow(
+        new McpError(ErrorCode.InvalidRequest, 'Issue not found: NONEXISTENT')
+      );
+
+      expect(createCommentFn).not.toHaveBeenCalled();
+    });
+
+    test('throws error when comment creation fails', async () => {
+      // Mock issue existence check
+      const mockIssue = {
+        id: 'issue-1',
+        identifier: 'TEST-1',
+      };
+      issueFn.mockImplementation(async () => mockIssue);
+
+      // Mock comment creation failure
+      createCommentFn.mockImplementation(async () => ({
+        success: false,
+        comment: null
+      }));
+
+      await expect(service.createComment({
+        issueId: 'TEST-1',
+        body: 'Test comment'
+      })).rejects.toThrow(
+        new McpError(ErrorCode.InternalError, 'Failed to create comment')
+      );
     });
   });
 
