@@ -8,7 +8,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LinearAPIService } from './services/linear-api.js';
-import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs } from './types/linear.js';
+import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs } from './types/linear.js';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
@@ -185,6 +185,24 @@ class LinearServer {
             },
           },
         },
+        {
+          name: 'create_comment',
+          description: 'Create a new comment on a Linear issue',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              issueId: {
+                type: 'string',
+                description: 'ID or key of the issue to comment on',
+              },
+              body: {
+                type: 'string',
+                description: 'Content of the comment (markdown supported)',
+              },
+            },
+            required: ['issueId', 'body'],
+          },
+        },
       ],
     }));
 
@@ -201,6 +219,8 @@ class LinearServer {
             return await this.handleUpdateIssue(request.params.arguments);
           case 'get_teams':
             return await this.handleGetTeams(request.params.arguments);
+          case 'create_comment':
+            return await this.handleCreateComment(request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -300,6 +320,25 @@ class LinearServer {
         {
           type: 'text',
           text: JSON.stringify(teams, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleCreateComment(args: unknown) {
+    if (!isCreateCommentArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid create_comment arguments'
+      );
+    }
+
+    const comment = await this.linearAPI.createComment(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(comment, null, 2),
         },
       ],
     };

@@ -26,6 +26,11 @@ export interface CreateIssueArgs {
   labelIds?: string[];  // Optional array of label IDs to attach
 }
 
+export interface CreateCommentArgs {
+  issueId: string;     // ID of the issue to comment on
+  body: string;        // Comment content
+}
+
 export interface UpdateIssueArgs {
   issueId: string;      // ID or key of issue to update
   title?: string;       // New title
@@ -149,6 +154,12 @@ export const isUpdateIssueArgs = (args: unknown): args is UpdateIssueArgs =>
   (typeof (args as UpdateIssueArgs).assigneeId === 'undefined' || typeof (args as UpdateIssueArgs).assigneeId === 'string') &&
   (typeof (args as UpdateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as UpdateIssueArgs).labelIds) && 
     (args as UpdateIssueArgs).labelIds!.every(id => typeof id === 'string')));
+
+export const isCreateCommentArgs = (args: unknown): args is CreateCommentArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as CreateCommentArgs).issueId === 'string' &&
+  typeof (args as CreateCommentArgs).body === 'string';
 
 // Helper functions for data cleaning
 export const extractMentions = (text: string | null | undefined): { issues: string[]; users: string[] } => {
