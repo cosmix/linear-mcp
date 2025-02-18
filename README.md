@@ -186,8 +186,8 @@ Create a new comment on a Linear issue.
 Input Schema:
 ```json
 {
-  "issueId": "string",    // ID of the issue to comment on
-  "body": "string"        // Comment content in markdown format
+  "issueId": "string",
+  "body": "string"
 }
 ```
 
