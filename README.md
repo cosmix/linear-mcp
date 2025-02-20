@@ -108,7 +108,7 @@ Input Schema:
   "parentId": "string",   
   "status": "string",
   "priority": "number",   
-  "assigneeId": "string | 'me'",  // Use 'me' for self-assignment
+  "assigneeId": "string | 'me'",
   "labelIds": ["string"]  
 }
 ```
@@ -150,7 +150,7 @@ Input Schema:
   "description": "string",
   "status": "string",     
   "priority": "number",   
-  "assigneeId": "string | 'me'",  // Use 'me' for self-assignment
+  "assigneeId": "string | 'me'",
   "labelIds": ["string"]  
 }
 ```
@@ -185,8 +185,8 @@ Input Schema:
   "query": "string",
   "includeRelationships": "boolean",
   "filter": {
-    "assignedTo": "string | 'me'",  // Filter by assignee (use 'me' for self)
-    "createdBy": "string | 'me'"    // Filter by creator (use 'me' for self)
+    "assignedTo": "string | 'me'",
+    "createdBy": "string | 'me'"
   }
 }
 ```
