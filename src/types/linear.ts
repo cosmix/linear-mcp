@@ -10,9 +10,25 @@ export interface GetIssueArgs {
   includeRelationships?: boolean; // Include comments, parent/sub-issues, and related issues
 }
 
+export interface LinearUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+// Internal type used by the service for actual Linear API calls
+export interface LinearSearchFilter {
+  assignedToUserIds?: string[];
+  creatorIds?: string[];
+}
+
 export interface SearchIssuesArgs {
   query: string;
   includeRelationships?: boolean;
+  filter?: {
+    assignedTo?: string;    // User ID or 'me' for self
+    createdBy?: string;     // User ID or 'me' for self
+  };
 }
 
 export interface CreateIssueArgs {
@@ -22,7 +38,7 @@ export interface CreateIssueArgs {
   parentId?: string;  // Optional parent issue ID, not identifier
   status?: string;
   priority?: number;
-  assigneeId?: string;
+  assigneeId?: string;   // User ID or 'me' for self
   labelIds?: string[];  // Optional array of label IDs to attach
 }
 
@@ -37,7 +53,7 @@ export interface UpdateIssueArgs {
   description?: string; // New description
   status?: string;      // New status
   priority?: number;    // New priority
-  assigneeId?: string;  // New assignee
+  assigneeId?: string;  // User ID or 'me' for self
   labelIds?: string[];  // New labels
 }
 
@@ -126,7 +142,14 @@ export const isGetIssueArgs = (args: unknown): args is GetIssueArgs =>
 export const isSearchIssuesArgs = (args: unknown): args is SearchIssuesArgs =>
   typeof args === 'object' &&
   args !== null &&
-  typeof (args as SearchIssuesArgs).query === 'string';
+  typeof (args as SearchIssuesArgs).query === 'string' &&
+  (typeof (args as SearchIssuesArgs).filter === 'undefined' ||
+    (typeof (args as SearchIssuesArgs).filter === 'object' &&
+      (args as SearchIssuesArgs).filter !== null &&
+      (typeof (args as SearchIssuesArgs).filter!.assignedTo === 'undefined' ||
+        typeof (args as SearchIssuesArgs).filter!.assignedTo === 'string') &&
+      (typeof (args as SearchIssuesArgs).filter!.createdBy === 'undefined' ||
+        typeof (args as SearchIssuesArgs).filter!.createdBy === 'string')));
 
 export const isCreateIssueArgs = (args: unknown): args is CreateIssueArgs =>
   typeof args === 'object' &&

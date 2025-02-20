@@ -6,6 +6,8 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 
 * Create new issues and subissues with label support
 * Update existing issues with full field modification
+* Self-assign issues using 'me' keyword
+* Advanced search by creator and assignee
 * Add comments to issues with markdown support
 * Query Linear issues by ID or key with optional relationships
 * Search issues using custom queries with enhanced metadata
@@ -102,11 +104,11 @@ Input Schema:
 {
   "teamId": "string",     
   "title": "string",      
-  "description": "string"
+  "description": "string",
   "parentId": "string",   
   "status": "string",
   "priority": "number",   
-  "assigneeId": "string",
+  "assigneeId": "string | 'me'",  // Use 'me' for self-assignment
   "labelIds": ["string"]  
 }
 ```
@@ -116,6 +118,15 @@ Example creating a new issue:
 {
   "teamId": "team-123",
   "title": "New Feature Request"
+}
+```
+
+Example creating a self-assigned issue:
+```json
+{
+  "teamId": "team-123",
+  "title": "My Task",
+  "assigneeId": "me"
 }
 ```
 
@@ -139,8 +150,16 @@ Input Schema:
   "description": "string",
   "status": "string",     
   "priority": "number",   
-  "assigneeId": "string", 
+  "assigneeId": "string | 'me'",  // Use 'me' for self-assignment
   "labelIds": ["string"]  
+}
+```
+
+Example self-assigning an issue:
+```json
+{
+  "issueId": "ISSUE-123",
+  "assigneeId": "me"
 }
 ```
 
@@ -158,13 +177,47 @@ Input Schema:
 
 ### search_issues
 
-Search for Linear issues using a query string.
+Search for Linear issues using a query string with advanced filtering.
 
 Input Schema:
 ```json
 {
   "query": "string",
-  "includeRelationships": "boolean"  
+  "includeRelationships": "boolean",
+  "filter": {
+    "assignedTo": "string | 'me'",  // Filter by assignee (use 'me' for self)
+    "createdBy": "string | 'me'"    // Filter by creator (use 'me' for self)
+  }
+}
+```
+
+Example searching for self-assigned issues:
+```json
+{
+  "query": "",
+  "filter": {
+    "assignedTo": "me"
+  }
+}
+```
+
+Example searching for issues created by you:
+```json
+{
+  "query": "",
+  "filter": {
+    "createdBy": "me"
+  }
+}
+```
+
+Example searching for issues assigned to a specific user:
+```json
+{
+  "query": "",
+  "filter": {
+    "assignedTo": "user-id-123"
+  }
 }
 ```
 
@@ -208,6 +261,15 @@ Input Schema:
   * User mention extraction (@username format)
   * Markdown content cleaning
   * Content optimization for AI context
+* Self-assignment support:
+  * Automatic current user resolution
+  * 'me' keyword support in create/update operations
+  * Efficient user ID caching
+* Advanced search capabilities:
+  * Filter by assignee (including self)
+  * Filter by creator (including self)
+  * Support for specific user IDs
+  * Efficient query optimization
 
 ## Error Handling
 
@@ -224,6 +286,8 @@ The server implements a comprehensive error handling strategy:
 * Authentication error handling
 * Invalid query handling
 * Team inheritance validation for subissues
+* User resolution validation
+* Search filter validation
 
 ## LICENCE
 
