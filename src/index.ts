@@ -50,7 +50,7 @@ class LinearServer {
       tools: [
         {
           name: 'create_issue',
-          description: 'Create a new Linear issue with optional parent linking',
+          description: 'Create a new Linear issue with optional parent linking. Supports self-assignment using "me" as assigneeId.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -80,7 +80,7 @@ class LinearServer {
               },
               assigneeId: {
                 type: 'string',
-                description: 'ID of the user to assign the issue to',
+                description: 'ID of the user to assign the issue to. Use "me" to assign to the current authenticated user, or a specific user ID.',
               },
               labelIds: {
                 type: 'array',
@@ -95,7 +95,7 @@ class LinearServer {
         },
         {
           name: 'update_issue',
-          description: 'Update an existing Linear issue',
+          description: 'Update an existing Linear issue. Supports self-assignment using "me" as assigneeId.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -121,7 +121,7 @@ class LinearServer {
               },
               assigneeId: {
                 type: 'string',
-                description: 'ID of the new assignee',
+                description: 'ID of the new assignee. Use "me" to assign to the current authenticated user, or a specific user ID.',
               },
               labelIds: {
                 type: 'array',
@@ -155,19 +155,33 @@ class LinearServer {
         },
         {
           name: 'search_issues',
-          description: 'Search for Linear issues using a query string with enhanced metadata',
+          description: 'Search for Linear issues using a query string and advanced filters. Supports filtering by assignee and creator, with special "me" keyword for self-reference. Examples: 1. Find your assigned issues: {query: "", filter: {assignedTo: "me"}}, 2. Find issues you created: {query: "", filter: {createdBy: "me"}}, 3. Find issues assigned to specific user: {query: "", filter: {assignedTo: "user-id-123"}}, 4. Combine with text search: {query: "bug", filter: {assignedTo: "me"}}',
           inputSchema: {
             type: 'object',
             properties: {
               query: {
                 type: 'string',
-                description: 'Search query for Linear issues',
+                description: 'Text to search in issue titles and descriptions. Can be empty string if only using filters.',
               },
               includeRelationships: {
                 type: 'boolean',
                 description: 'Include additional metadata like team and labels in search results',
                 default: false,
               },
+              filter: {
+                type: 'object',
+                description: 'Optional filters to narrow down search results',
+                properties: {
+                  assignedTo: {
+                    type: 'string',
+                    description: 'Filter by assignee. Use "me" to find issues assigned to the current user, or a specific user ID.',
+                  },
+                  createdBy: {
+                    type: 'string',
+                    description: 'Filter by creator. Use "me" to find issues created by the current user, or a specific user ID.',
+                  }
+                }
+              }
             },
             required: ['query'],
           },
