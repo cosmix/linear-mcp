@@ -57,6 +57,10 @@ export interface UpdateIssueArgs {
   labelIds?: string[];  // New labels
 }
 
+export interface DeleteIssueArgs {
+  issueId: string;  // ID of the issue to delete
+}
+
 // Linear data interfaces
 export interface LinearComment {
   id: string;
@@ -165,6 +169,11 @@ export const isCreateIssueArgs = (args: unknown): args is CreateIssueArgs =>
     (args as CreateIssueArgs).labelIds!.every(id => typeof id === 'string'))) &&
   // Ensure either teamId or parentId is provided
   ((args as CreateIssueArgs).teamId !== undefined || (args as CreateIssueArgs).parentId !== undefined);
+
+export const isDeleteIssueArgs = (args: unknown): args is DeleteIssueArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as DeleteIssueArgs).issueId === 'string';
 
 export const isUpdateIssueArgs = (args: unknown): args is UpdateIssueArgs =>
   typeof args === 'object' &&

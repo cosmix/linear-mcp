@@ -169,7 +169,8 @@ describe('LinearAPIService', () => {
         _request: () => Promise.resolve({}),
         paginate: () => Promise.resolve({ nodes: [] })
       })) as any,
-      viewer: Promise.resolve(mockViewer) as any
+      viewer: Promise.resolve(mockViewer) as any,
+      deleteIssue: mock(() => Promise.resolve()) as any
     };
     
     // Create service instance with mock client
@@ -1415,6 +1416,39 @@ describe('LinearAPIService', () => {
       const result = await service.getIssue({ issueId: 'TEST-1' });
 
       expect(result.description).toBe('`` code block `` --- Final paragraph');
+    });
+  });
+
+  describe('deleteIssue', () => {
+    test('deletes issue successfully', async () => {
+      const mockIssue = {
+        id: 'issue-1',
+        delete: mock(() => Promise.resolve())
+      };
+
+      issueFn.mockImplementation(async () => mockIssue);
+
+      await service.deleteIssue({ issueId: 'TEST-1' });
+      expect(mockIssue.delete).toHaveBeenCalled();
+    });
+
+    test('throws error when issue not found', async () => {
+      issueFn.mockImplementation(async () => null);
+
+      await expect(service.deleteIssue({ issueId: 'NONEXISTENT' }))
+        .rejects.toThrow(new McpError(ErrorCode.InvalidRequest, 'Issue not found: NONEXISTENT'));
+    });
+
+    test('handles API errors gracefully', async () => {
+      const mockIssue = {
+        id: 'issue-1',
+        delete: mock(() => Promise.reject(new Error('API error')))
+      };
+
+      issueFn.mockImplementation(async () => mockIssue);
+
+      await expect(service.deleteIssue({ issueId: 'TEST-1' }))
+        .rejects.toThrow(new McpError(ErrorCode.InternalError, 'Failed to delete issue: API error'));
     });
   });
 
