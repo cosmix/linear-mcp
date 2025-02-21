@@ -7,6 +7,7 @@ import {
   UpdateIssueArgs,
   CreateCommentArgs,
   GetTeamsArgs,
+  DeleteIssueArgs,
   LinearIssue, 
   LinearIssueSearchResult,
   LinearComment,
@@ -17,7 +18,7 @@ import {
   cleanDescription
 } from '../types/linear.js';
 
-export interface LinearClientInterface extends Pick<LinearClient, 'issue' | 'issues' | 'createIssue' | 'teams' | 'createComment' | 'viewer'> {}
+export interface LinearClientInterface extends Pick<LinearClient, 'issue' | 'issues' | 'createIssue' | 'teams' | 'createComment' | 'viewer' | 'deleteIssue'> {}
 
 export class LinearAPIService {
   private client: LinearClientInterface;
@@ -392,6 +393,24 @@ export class LinearAPIService {
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to create comment: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  async deleteIssue(args: DeleteIssueArgs): Promise<void> {
+    // Verify issue exists
+    const issue = await this.client.issue(args.issueId);
+    if (!issue) {
+      throw new McpError(ErrorCode.InvalidRequest, `Issue not found: ${args.issueId}`);
+    }
+
+    try {
+      // Delete the issue
+      await issue.delete();
+    } catch (error) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to delete issue: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

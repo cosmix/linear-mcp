@@ -8,7 +8,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LinearAPIService } from './services/linear-api.js';
-import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs } from './types/linear.js';
+import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs, isDeleteIssueArgs } from './types/linear.js';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
@@ -217,6 +217,20 @@ class LinearServer {
             required: ['issueId', 'body'],
           },
         },
+        {
+          name: 'delete_issue',
+          description: 'Delete an existing Linear issue',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              issueId: {
+                type: 'string',
+                description: 'ID or key of the issue to delete',
+              },
+            },
+            required: ['issueId'],
+          },
+        },
       ],
     }));
 
@@ -235,6 +249,8 @@ class LinearServer {
             return await this.handleGetTeams(request.params.arguments);
           case 'create_comment':
             return await this.handleCreateComment(request.params.arguments);
+          case 'delete_issue':
+            return await this.handleDeleteIssue(request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -353,6 +369,25 @@ class LinearServer {
         {
           type: 'text',
           text: JSON.stringify(comment, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleDeleteIssue(args: unknown) {
+    if (!isDeleteIssueArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid delete_issue arguments'
+      );
+    }
+
+    await this.linearAPI.deleteIssue(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ success: true, message: 'Issue deleted successfully' }),
         },
       ],
     };

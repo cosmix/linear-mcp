@@ -232,6 +232,17 @@ Input Schema:
 }
 ```
 
+### delete_issue
+
+Delete an existing Linear issue.
+
+Input Schema:
+```json
+{
+  "issueId": "string"
+}
+```
+
 ### create_comment
 
 Create a new comment on a Linear issue.
