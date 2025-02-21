@@ -6,6 +6,7 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 
 * Create new issues and subissues with label support
 * Update existing issues with full field modification
+* Delete issue with validation
 * Self-assign issues using 'me' keyword
 * Advanced search by creator and assignee
 * Add comments to issues with markdown support
