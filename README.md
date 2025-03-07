@@ -5,6 +5,8 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 ## Features
 
 * Create new issues and subissues with label support
+* Retrieve the list of linear projects
+* Retrieve the project updates
 * Update existing issues with full field modification
 * Delete issue with validation
 * Self-assign issues using 'me' keyword
@@ -253,6 +255,90 @@ Input Schema:
 {
   "issueId": "string",
   "body": "string"
+}
+```
+
+### get_projects
+
+Get a list of Linear projects with optional name filtering and pagination.
+
+Input Schema:
+```json
+{
+  "nameFilter": "string",
+  "includeArchived": "boolean",
+  "first": "number",
+  "after": "string"
+}
+```
+
+Example fetching all projects:
+```json
+{}
+```
+
+Example searching for projects by name:
+```json
+{
+  "nameFilter": "Website"
+}
+```
+
+Example with pagination:
+```json
+{
+  "first": 10,
+  "after": "cursor-from-previous-response"
+}
+```
+
+### get_project_updates
+
+Get project updates for a given project ID with optional filtering parameters.
+
+Input Schema:
+```json
+{
+  "projectId": "string",
+  "includeArchived": "boolean",
+  "first": "number",
+  "after": "string",
+  "createdAfter": "string",
+  "createdBefore": "string",
+  "userId": "string | 'me'",
+  "health": "string"
+}
+```
+
+Example fetching updates for a project:
+```json
+{
+  "projectId": "project-123"
+}
+```
+
+Example filtering by date range:
+```json
+{
+  "projectId": "project-123",
+  "createdAfter": "2023-01-01T00:00:00Z",
+  "createdBefore": "2023-12-31T23:59:59Z"
+}
+```
+
+Example filtering by creator (self):
+```json
+{
+  "projectId": "project-123",
+  "userId": "me"
+}
+```
+
+Example filtering by health status:
+```json
+{
+  "projectId": "project-123",
+  "health": "atRisk"
 }
 ```
 

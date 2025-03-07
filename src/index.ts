@@ -8,7 +8,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LinearAPIService } from './services/linear-api.js';
-import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs, isDeleteIssueArgs } from './types/linear.js';
+import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs, isDeleteIssueArgs, isGetProjectUpdatesArgs, isGetProjectsArgs } from './types/linear.js';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
@@ -231,6 +231,78 @@ class LinearServer {
             required: ['issueId'],
           },
         },
+        {
+          name: 'get_projects',
+          description: 'Get a list of Linear projects with optional name filtering and pagination',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              nameFilter: {
+                type: 'string',
+                description: 'Optional filter to search by project name'
+              },
+              includeArchived: {
+                type: 'boolean',
+                description: 'Whether to include archived projects (default: true)',
+                default: true
+              },
+              first: {
+                type: 'number',
+                description: 'Number of items to return (default: 50, max: 100)',
+                default: 50
+              },
+              after: {
+                type: 'string',
+                description: 'Cursor for pagination. Use the endCursor from a previous response to fetch the next page'
+              }
+            },
+            required: [] // All properties are optional
+          }
+        },
+        {
+          name: 'get_project_updates',
+          description: 'Get project updates for a given project ID with optional filtering parameters',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: {
+                type: 'string',
+                description: 'ID of the project to get updates for'
+              },
+              includeArchived: {
+                type: 'boolean',
+                description: 'Whether to include archived updates (default: true)',
+                default: true
+              },
+              first: {
+                type: 'number',
+                description: 'Number of items to return (default: 50, max: 100)',
+                default: 50
+              },
+              after: {
+                type: 'string',
+                description: 'Cursor for pagination. Use the endCursor from a previous response to fetch the next page'
+              },
+              createdAfter: {
+                type: 'string',
+                description: 'ISO date string. Only return updates created after this date'
+              },
+              createdBefore: {
+                type: 'string',
+                description: 'ISO date string. Only return updates created before this date'
+              },
+              userId: {
+                type: 'string',
+                description: 'Filter updates by creator. Use "me" to find updates created by the current user, or a specific user ID'
+              },
+              health: {
+                type: 'string',
+                description: 'Filter updates by health status (e.g., "onTrack", "atRisk", "offTrack")'
+              }
+            },
+            required: ['projectId']
+          }
+        },
       ],
     }));
 
@@ -251,6 +323,10 @@ class LinearServer {
             return await this.handleCreateComment(request.params.arguments);
           case 'delete_issue':
             return await this.handleDeleteIssue(request.params.arguments);
+          case 'get_projects':
+            return await this.handleGetProjects(request.params.arguments);
+          case 'get_project_updates':
+            return await this.handleGetProjectUpdates(request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -388,6 +464,44 @@ class LinearServer {
         {
           type: 'text',
           text: JSON.stringify({ success: true, message: 'Issue deleted successfully' }),
+        },
+      ],
+    };
+  }
+
+  private async handleGetProjects(args: unknown) {
+    if (!isGetProjectsArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid get_projects arguments'
+      );
+    }
+
+    const projects = await this.linearAPI.getProjects(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(projects, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleGetProjectUpdates(args: unknown) {
+    if (!isGetProjectUpdatesArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid get_project_updates arguments'
+      );
+    }
+
+    const projectUpdates = await this.linearAPI.getProjectUpdates(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(projectUpdates, null, 2),
         },
       ],
     };

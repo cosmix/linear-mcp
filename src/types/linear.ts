@@ -1,6 +1,24 @@
 import { LinearClient } from '@linear/sdk';
 
 // Tool argument interfaces
+export interface GetProjectsArgs {
+  nameFilter?: string;     // Optional filter by project name
+  includeArchived?: boolean; // Whether to include archived projects
+  first?: number;          // Pagination: number of items to return (default: 50, max: 100)
+  after?: string;          // Pagination: cursor for fetching next page
+}
+
+export interface GetProjectUpdatesArgs {
+  projectId: string;
+  includeArchived?: boolean;
+  first?: number;
+  after?: string;  // Cursor for pagination
+  createdAfter?: string;
+  createdBefore?: string;
+  userId?: string;  // User ID or 'me' for self
+  health?: string;
+}
+
 export interface GetTeamsArgs {
   nameFilter?: string; // Optional filter to search by team name
 }
@@ -131,6 +149,78 @@ export interface LinearIssueSearchResult {
   labels?: string[];
 }
 
+export interface LinearProjectUpdate {
+  id: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  health?: string;
+  user: {
+    id: string;
+    name: string;
+    displayName?: string;
+    email?: string;
+    avatarUrl?: string;
+  };
+  diffMarkdown?: string;
+  url?: string;
+}
+
+export interface LinearProject {
+  id: string;
+  name: string;
+  description?: string;
+  slugId: string;
+  icon?: string;
+  color?: string;
+  status: {
+    name: string;
+    type: string;
+  };
+  creator?: {
+    id: string;
+    name: string;
+  };
+  lead?: {
+    id: string;
+    name: string;
+  };
+  startDate?: string;
+  targetDate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  canceledAt?: string;
+  progress?: number;
+  health?: string;
+  teams: {
+    id: string;
+    name: string;
+    key: string;
+  }[];
+}
+
+export interface LinearProjectsResponse {
+  projects: LinearProject[];
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor?: string;
+  };
+  totalCount: number;
+}
+
+export interface LinearProjectUpdateResponse {
+  projectUpdates: LinearProjectUpdate[];
+  project: {
+    id: string;
+    name: string;
+  };
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor?: string;
+  };
+  totalCount: number;
+}
+
 // Type guards
 export const isGetTeamsArgs = (args: unknown): args is GetTeamsArgs =>
   typeof args === 'object' &&
@@ -192,6 +282,37 @@ export const isCreateCommentArgs = (args: unknown): args is CreateCommentArgs =>
   args !== null &&
   typeof (args as CreateCommentArgs).issueId === 'string' &&
   typeof (args as CreateCommentArgs).body === 'string';
+
+export const isGetProjectsArgs = (args: unknown): args is GetProjectsArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  (typeof (args as GetProjectsArgs).nameFilter === 'undefined' || 
+   typeof (args as GetProjectsArgs).nameFilter === 'string') &&
+  (typeof (args as GetProjectsArgs).includeArchived === 'undefined' || 
+   typeof (args as GetProjectsArgs).includeArchived === 'boolean') &&
+  (typeof (args as GetProjectsArgs).first === 'undefined' || 
+   typeof (args as GetProjectsArgs).first === 'number') &&
+  (typeof (args as GetProjectsArgs).after === 'undefined' || 
+   typeof (args as GetProjectsArgs).after === 'string');
+
+export const isGetProjectUpdatesArgs = (args: unknown): args is GetProjectUpdatesArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as GetProjectUpdatesArgs).projectId === 'string' &&
+  (typeof (args as GetProjectUpdatesArgs).includeArchived === 'undefined' || 
+   typeof (args as GetProjectUpdatesArgs).includeArchived === 'boolean') &&
+  (typeof (args as GetProjectUpdatesArgs).first === 'undefined' || 
+   typeof (args as GetProjectUpdatesArgs).first === 'number') &&
+  (typeof (args as GetProjectUpdatesArgs).after === 'undefined' || 
+   typeof (args as GetProjectUpdatesArgs).after === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).createdAfter === 'undefined' || 
+   typeof (args as GetProjectUpdatesArgs).createdAfter === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).createdBefore === 'undefined' || 
+   typeof (args as GetProjectUpdatesArgs).createdBefore === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).userId === 'undefined' || 
+   typeof (args as GetProjectUpdatesArgs).userId === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).health === 'undefined' || 
+   typeof (args as GetProjectUpdatesArgs).health === 'string');
 
 // Helper functions for data cleaning
 export const extractMentions = (text: string | null | undefined): { issues: string[]; users: string[] } => {

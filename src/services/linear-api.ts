@@ -8,17 +8,22 @@ import {
   CreateCommentArgs,
   GetTeamsArgs,
   DeleteIssueArgs,
+  GetProjectUpdatesArgs,
+  GetProjectsArgs,
   LinearIssue, 
   LinearIssueSearchResult,
   LinearComment,
   LinearRelationship,
   LinearTeam,
   LinearUser,
+  LinearProjectUpdateResponse,
+  LinearProject,
+  LinearProjectsResponse,
   extractMentions,
   cleanDescription
 } from '../types/linear.js';
 
-export interface LinearClientInterface extends Pick<LinearClient, 'issue' | 'issues' | 'createIssue' | 'teams' | 'createComment' | 'viewer' | 'deleteIssue'> {}
+export interface LinearClientInterface extends Pick<LinearClient, 'issue' | 'issues' | 'createIssue' | 'teams' | 'createComment' | 'viewer' | 'deleteIssue' | 'project' | 'projects'> {}
 
 export class LinearAPIService {
   private client: LinearClientInterface;
@@ -485,6 +490,237 @@ export class LinearAPIService {
       throw new McpError(
         ErrorCode.InternalError,
         error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
+
+  async getProjects(args: GetProjectsArgs): Promise<LinearProjectsResponse> {
+    try {
+      // Validate and normalize arguments
+      const first = Math.min(args.first || 50, 100); // Cap at 100
+      const includeArchived = args.includeArchived !== false; // Default to true if not explicitly set to false
+      
+      // Build filter conditions
+      const filter: Record<string, any> = {};
+      
+      if (args.nameFilter) {
+        filter.name = { contains: args.nameFilter };
+      }
+      
+      // Fetch projects with pagination
+      const projects = await (this.client as LinearClient).projects({
+        first,
+        after: args.after,
+        includeArchived,
+        filter: Object.keys(filter).length > 0 ? filter : undefined
+      });
+      
+      // Process and format the results
+      const formattedProjects = await Promise.all(
+        projects.nodes.map(async (project) => {
+          // Fetch related data
+          const [creator, lead, teams, state] = await Promise.all([
+            project.creator,
+            project.lead,
+            project.teams(),
+            project.state
+          ]);
+          
+          return {
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            slugId: project.slugId,
+            icon: project.icon,
+            color: project.color,
+            status: {
+              name: 'Unknown', // We'll use a default value for now
+              type: 'Unknown'
+            },
+            creator: creator ? {
+              id: creator.id,
+              name: creator.name
+            } : undefined,
+            lead: lead ? {
+              id: lead.id,
+              name: lead.name
+            } : undefined,
+            startDate: project.startDate,
+            targetDate: project.targetDate,
+            startedAt: project.startedAt?.toISOString(),
+            completedAt: project.completedAt?.toISOString(),
+            canceledAt: project.canceledAt?.toISOString(),
+            progress: project.progress,
+            health: project.health,
+            teams: teams.nodes.map(team => ({
+              id: team.id,
+              name: team.name,
+              key: team.key
+            }))
+          };
+        })
+      );
+      
+      // Extract pagination information
+      const pageInfo = {
+        hasNextPage: projects.pageInfo.hasNextPage,
+        endCursor: projects.pageInfo.endCursor
+      };
+      
+      return {
+        projects: formattedProjects,
+        pageInfo,
+        totalCount: formattedProjects.length
+      };
+    } catch (error) {
+      if (error instanceof McpError) {
+        throw error;
+      }
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to fetch projects: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  async getProjectUpdates(args: GetProjectUpdatesArgs): Promise<LinearProjectUpdateResponse> {
+    try {
+      // Validate and normalize arguments
+      const first = Math.min(args.first || 50, 100); // Cap at 100
+      const includeArchived = args.includeArchived !== false; // Default to true if not explicitly set to false
+      
+      // Handle 'me' user ID reference
+      let userId = args.userId;
+      if (userId === 'me') {
+        const currentUser = await this.getCurrentUser();
+        userId = currentUser.id;
+      }
+
+      // Fetch the project to verify it exists
+      const project = await (this.client as LinearClient).project(args.projectId);
+      if (!project) {
+        throw new McpError(ErrorCode.InvalidRequest, `Project not found: ${args.projectId}`);
+      }
+
+      // Build filter conditions for project updates
+      const filter: Record<string, any> = {};
+      
+      if (args.createdAfter) {
+        filter.createdAt = { ...filter.createdAt, gte: new Date(args.createdAfter) };
+      }
+      
+      if (args.createdBefore) {
+        filter.createdAt = { ...filter.createdAt, lte: new Date(args.createdBefore) };
+      }
+      
+      if (userId) {
+        filter.user = { id: { eq: userId } };
+      }
+      
+      if (args.health) {
+        filter.health = { eq: args.health };
+      }
+
+      // Fetch project updates with pagination
+      // Note: Linear SDK doesn't support filtering project updates directly,
+      // so we'll fetch all and filter in memory
+      const projectUpdates = await project.projectUpdates({
+        first,
+        after: args.after,  // Add cursor for pagination
+        includeArchived
+      });
+
+      // Get all updates first
+      let allUpdates = [...projectUpdates.nodes];
+      
+      // Prepare filtered updates
+      let filteredUpdates = [...allUpdates];
+      
+      // Apply date filters in memory
+      if (args.createdAfter) {
+        const afterDate = new Date(args.createdAfter);
+        filteredUpdates = filteredUpdates.filter(update => 
+          new Date(update.createdAt) >= afterDate
+        );
+      }
+      
+      if (args.createdBefore) {
+        const beforeDate = new Date(args.createdBefore);
+        filteredUpdates = filteredUpdates.filter(update => 
+          new Date(update.createdAt) <= beforeDate
+        );
+      }
+      
+      if (args.health) {
+        filteredUpdates = filteredUpdates.filter(update => 
+          update.health === args.health
+        );
+      }
+      
+      // For user filtering, we need to pre-fetch all users
+      if (userId) {
+        // Get all users for the updates
+        const updateUsers = await Promise.all(
+          filteredUpdates.map(async update => {
+            return {
+              update,
+              user: await update.user
+            };
+          })
+        );
+        
+        // Filter by user ID
+        filteredUpdates = updateUsers
+          .filter(item => item.user?.id === userId)
+          .map(item => item.update);
+      }
+
+      // Process and format the results
+      const formattedUpdates = await Promise.all(
+        filteredUpdates.map(async (update) => {
+          const user = await update.user;
+          
+          return {
+            id: update.id,
+            body: update.body,
+            createdAt: update.createdAt.toISOString(),
+            updatedAt: update.updatedAt.toISOString(),
+            health: update.health,
+            user: {
+              id: user?.id || '',
+              name: user?.name || '',
+              displayName: user?.displayName,
+              email: user?.email,
+              avatarUrl: user?.avatarUrl
+            },
+            diffMarkdown: update.diffMarkdown,
+            url: update.url
+          };
+        })
+      );
+
+      // Extract pagination information
+      const pageInfo = {
+        hasNextPage: projectUpdates.pageInfo.hasNextPage,
+        endCursor: projectUpdates.pageInfo.endCursor
+      };
+
+      return {
+        projectUpdates: formattedUpdates,
+        project: {
+          id: project.id,
+          name: project.name
+        },
+        pageInfo,
+        totalCount: formattedUpdates.length
+      };
+    } catch (error) {
+      if (error instanceof McpError) {
+        throw error;
+      }
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to fetch project updates: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

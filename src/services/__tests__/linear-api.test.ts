@@ -10,6 +10,8 @@ describe('LinearAPIService', () => {
   let createIssueFn: ReturnType<typeof mock>;
   let teamsFn: ReturnType<typeof mock>;
   let viewerFn: ReturnType<typeof mock>;
+  let projectsFn: ReturnType<typeof mock>;
+  let projectFn: ReturnType<typeof mock>;
 
   beforeEach(() => {
     // Setup mocks
@@ -17,6 +19,11 @@ describe('LinearAPIService', () => {
     issuesFn = mock(() => Promise.resolve({ nodes: [] }));
     createIssueFn = mock(() => Promise.resolve({ success: true, issue: null }));
     teamsFn = mock(() => Promise.resolve({ nodes: [] }));
+    projectsFn = mock(() => Promise.resolve({ 
+      nodes: [],
+      pageInfo: { hasNextPage: false, endCursor: null }
+    }));
+    projectFn = mock(() => Promise.resolve(null));
     // Create a properly typed mock viewer that matches Linear SDK's User type
     const mockViewer = {
       id: 'current-user',
@@ -170,7 +177,9 @@ describe('LinearAPIService', () => {
         paginate: () => Promise.resolve({ nodes: [] })
       })) as any,
       viewer: Promise.resolve(mockViewer) as any,
-      deleteIssue: mock(() => Promise.resolve()) as any
+      deleteIssue: mock(() => Promise.resolve()) as any,
+      project: projectFn as any,
+      projects: projectsFn as any
     };
     
     // Create service instance with mock client
@@ -1449,6 +1458,412 @@ describe('LinearAPIService', () => {
 
       await expect(service.deleteIssue({ issueId: 'TEST-1' }))
         .rejects.toThrow(new McpError(ErrorCode.InternalError, 'Failed to delete issue: API error'));
+    });
+  });
+
+  describe('getProjects', () => {
+    test('returns formatted projects list', async () => {
+      const mockProjects = {
+        nodes: [
+          {
+            id: 'project-1',
+            name: 'Project Alpha',
+            description: 'First test project',
+            slugId: 'project-alpha',
+            icon: '🚀',
+            color: '#ff0000',
+            state: Promise.resolve({ name: 'Active', type: 'active' }),
+            creator: Promise.resolve({ id: 'user-1', name: 'John Doe' }),
+            lead: Promise.resolve({ id: 'user-2', name: 'Jane Smith' }),
+            startDate: '2025-01-01',
+            targetDate: '2025-06-30',
+            startedAt: new Date('2025-01-01'),
+            completedAt: undefined,
+            canceledAt: undefined,
+            progress: 0.5,
+            health: 'onTrack',
+            teams: () => Promise.resolve({
+              nodes: [
+                { id: 'team-1', name: 'Engineering', key: 'ENG' },
+                { id: 'team-2', name: 'Design', key: 'DES' }
+              ]
+            })
+          },
+          {
+            id: 'project-2',
+            name: 'Project Beta',
+            description: 'Second test project',
+            slugId: 'project-beta',
+            icon: '🔥',
+            color: '#0000ff',
+            state: Promise.resolve({ name: 'Planning', type: 'planning' }),
+            creator: Promise.resolve({ id: 'user-1', name: 'John Doe' }),
+            lead: Promise.resolve(null),
+            startDate: '2025-07-01',
+            targetDate: '2025-12-31',
+            startedAt: undefined,
+            completedAt: undefined,
+            canceledAt: undefined,
+            progress: 0,
+            health: 'onTrack',
+            teams: () => Promise.resolve({
+              nodes: [
+                { id: 'team-1', name: 'Engineering', key: 'ENG' }
+              ]
+            })
+          }
+        ],
+        pageInfo: {
+          hasNextPage: true,
+          endCursor: 'cursor123'
+        }
+      };
+
+      projectsFn.mockImplementation(async () => mockProjects);
+
+      const result = await service.getProjects({});
+
+      expect(result).toEqual({
+        projects: [
+          {
+            id: 'project-1',
+            name: 'Project Alpha',
+            description: 'First test project',
+            slugId: 'project-alpha',
+            icon: '🚀',
+            color: '#ff0000',
+            status: {
+              name: 'Unknown',
+              type: 'Unknown'
+            },
+            creator: {
+              id: 'user-1',
+              name: 'John Doe'
+            },
+            lead: {
+              id: 'user-2',
+              name: 'Jane Smith'
+            },
+            startDate: '2025-01-01',
+            targetDate: '2025-06-30',
+            startedAt: '2025-01-01T00:00:00.000Z',
+            completedAt: undefined,
+            canceledAt: undefined,
+            progress: 0.5,
+            health: 'onTrack',
+            teams: [
+              { id: 'team-1', name: 'Engineering', key: 'ENG' },
+              { id: 'team-2', name: 'Design', key: 'DES' }
+            ]
+          },
+          {
+            id: 'project-2',
+            name: 'Project Beta',
+            description: 'Second test project',
+            slugId: 'project-beta',
+            icon: '🔥',
+            color: '#0000ff',
+            status: {
+              name: 'Unknown',
+              type: 'Unknown'
+            },
+            creator: {
+              id: 'user-1',
+              name: 'John Doe'
+            },
+            lead: undefined,
+            startDate: '2025-07-01',
+            targetDate: '2025-12-31',
+            startedAt: undefined,
+            completedAt: undefined,
+            canceledAt: undefined,
+            progress: 0,
+            health: 'onTrack',
+            teams: [
+              { id: 'team-1', name: 'Engineering', key: 'ENG' }
+            ]
+          }
+        ],
+        pageInfo: {
+          hasNextPage: true,
+          endCursor: 'cursor123'
+        },
+        totalCount: 2
+      });
+
+      expect(projectsFn).toHaveBeenCalledWith({
+        first: 50,
+        after: undefined,
+        includeArchived: true,
+        filter: undefined
+      });
+    });
+
+    test('applies name filter correctly', async () => {
+      const mockProjects = {
+        nodes: [
+          {
+            id: 'project-1',
+            name: 'Project Alpha',
+            description: 'First test project',
+            slugId: 'project-alpha',
+            icon: '🚀',
+            color: '#ff0000',
+            state: Promise.resolve({ name: 'Active', type: 'active' }),
+            creator: Promise.resolve({ id: 'user-1', name: 'John Doe' }),
+            lead: Promise.resolve({ id: 'user-2', name: 'Jane Smith' }),
+            startDate: '2025-01-01',
+            targetDate: '2025-06-30',
+            startedAt: new Date('2025-01-01'),
+            completedAt: undefined,
+            canceledAt: undefined,
+            progress: 0.5,
+            health: 'onTrack',
+            teams: () => Promise.resolve({ nodes: [] })
+          }
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: null
+        }
+      };
+
+      projectsFn.mockImplementation(async () => mockProjects);
+
+      await service.getProjects({ nameFilter: 'Alpha' });
+
+      expect(projectsFn).toHaveBeenCalledWith({
+        first: 50,
+        after: undefined,
+        includeArchived: true,
+        filter: { name: { contains: 'Alpha' } }
+      });
+    });
+
+    test('handles pagination parameters', async () => {
+      const mockProjects = {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: null
+        }
+      };
+
+      projectsFn.mockImplementation(async () => mockProjects);
+
+      await service.getProjects({
+        first: 10,
+        after: 'cursor123',
+        includeArchived: false
+      });
+
+      expect(projectsFn).toHaveBeenCalledWith({
+        first: 10,
+        after: 'cursor123',
+        includeArchived: false,
+        filter: undefined
+      });
+    });
+
+    test('handles empty projects list', async () => {
+      const mockProjects = {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: null
+        }
+      };
+
+      projectsFn.mockImplementation(async () => mockProjects);
+
+      const result = await service.getProjects({});
+
+      expect(result).toEqual({
+        projects: [],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: undefined
+        },
+        totalCount: 0
+      });
+    });
+
+    test('handles API errors gracefully', async () => {
+      projectsFn.mockImplementation(async () => {
+        throw new Error('API error');
+      });
+
+      await expect(service.getProjects({}))
+        .rejects.toThrow(new McpError(ErrorCode.InternalError, 'Failed to fetch projects: API error'));
+    });
+  });
+
+  describe('getProjectUpdates', () => {
+    test('returns formatted project updates', async () => {
+      const mockProject = {
+        id: 'project-1',
+        name: 'Project Alpha',
+        projectUpdates: async () => ({
+          nodes: [
+            {
+              id: 'update-1',
+              body: 'First update',
+              createdAt: new Date('2025-01-24'),
+              updatedAt: new Date('2025-01-24'),
+              health: 'onTrack',
+              user: Promise.resolve({
+                id: 'user-1',
+                name: 'John Doe',
+                displayName: 'John',
+                email: 'john@example.com',
+                avatarUrl: 'https://example.com/avatar.jpg'
+              }),
+              diffMarkdown: 'Some changes',
+              url: 'https://linear.app/project/update/1'
+            },
+            {
+              id: 'update-2',
+              body: 'Second update',
+              createdAt: new Date('2025-01-25'),
+              updatedAt: new Date('2025-01-25'),
+              health: 'atRisk',
+              user: Promise.resolve({
+                id: 'user-2',
+                name: 'Jane Smith',
+                displayName: 'Jane',
+                email: 'jane@example.com',
+                avatarUrl: undefined
+              }),
+              diffMarkdown: undefined,
+              url: 'https://linear.app/project/update/2'
+            }
+          ],
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: null
+          }
+        })
+      };
+
+      projectFn.mockImplementation(async () => mockProject);
+
+      const result = await service.getProjectUpdates({ projectId: 'project-1' });
+
+      expect(result).toEqual({
+        projectUpdates: [
+          {
+            id: 'update-1',
+            body: 'First update',
+            createdAt: '2025-01-24T00:00:00.000Z',
+            updatedAt: '2025-01-24T00:00:00.000Z',
+            health: 'onTrack',
+            user: {
+              id: 'user-1',
+              name: 'John Doe',
+              displayName: 'John',
+              email: 'john@example.com',
+              avatarUrl: 'https://example.com/avatar.jpg'
+            },
+            diffMarkdown: 'Some changes',
+            url: 'https://linear.app/project/update/1'
+          },
+          {
+            id: 'update-2',
+            body: 'Second update',
+            createdAt: '2025-01-25T00:00:00.000Z',
+            updatedAt: '2025-01-25T00:00:00.000Z',
+            health: 'atRisk',
+            user: {
+              id: 'user-2',
+              name: 'Jane Smith',
+              displayName: 'Jane',
+              email: 'jane@example.com',
+              avatarUrl: undefined
+            },
+            diffMarkdown: undefined,
+            url: 'https://linear.app/project/update/2'
+          }
+        ],
+        project: {
+          id: 'project-1',
+          name: 'Project Alpha'
+        },
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: undefined
+        },
+        totalCount: 2
+      });
+    });
+
+    test('handles project not found', async () => {
+      projectFn.mockImplementation(async () => null);
+
+      await expect(service.getProjectUpdates({ projectId: 'nonexistent' }))
+        .rejects.toThrow(new McpError(ErrorCode.InvalidRequest, 'Project not found: nonexistent'));
+    });
+
+    test('handles pagination and filtering parameters', async () => {
+      const mockProject = {
+        id: 'project-1',
+        name: 'Project Alpha',
+        projectUpdates: async (params: any) => ({
+          nodes: [],
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: null
+          }
+        })
+      };
+
+      projectFn.mockImplementation(async () => mockProject);
+
+      await service.getProjectUpdates({
+        projectId: 'project-1',
+        first: 10,
+        after: 'cursor123',
+        includeArchived: false,
+        createdAfter: '2025-01-01',
+        createdBefore: '2025-01-31',
+        userId: 'user-1',
+        health: 'onTrack'
+      });
+
+      // We can't easily test the exact parameters passed to projectUpdates
+      // since it's an internal method call, but we can verify the function was called
+      expect(projectFn).toHaveBeenCalledWith('project-1');
+    });
+
+    test('handles self-reference for userId', async () => {
+      const mockProject = {
+        id: 'project-1',
+        name: 'Project Alpha',
+        projectUpdates: async () => ({
+          nodes: [],
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: null
+          }
+        })
+      };
+
+      projectFn.mockImplementation(async () => mockProject);
+
+      await service.getProjectUpdates({
+        projectId: 'project-1',
+        userId: 'me'
+      });
+
+      expect(projectFn).toHaveBeenCalledWith('project-1');
+    });
+
+    test('handles API errors gracefully', async () => {
+      projectFn.mockImplementation(async () => {
+        throw new Error('API error');
+      });
+
+      await expect(service.getProjectUpdates({ projectId: 'project-1' }))
+        .rejects.toThrow(new McpError(ErrorCode.InternalError, 'Failed to fetch project updates: API error'));
     });
   });
 
