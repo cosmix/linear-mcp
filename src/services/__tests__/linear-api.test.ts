@@ -913,6 +913,233 @@ describe('LinearAPIService', () => {
         }
       });
     });
+
+    test('filters issues by project ID', async () => {
+      const testIssues = {
+        nodes: [{
+          id: 'issue-1',
+          identifier: 'TEST-1',
+          title: 'Test Issue',
+          priority: 1,
+          state: Promise.resolve({ name: 'In Progress' }),
+          assignee: Promise.resolve({ name: 'John Doe' }),
+          team: Promise.resolve({ name: 'Engineering' }),
+          labels: () => Promise.resolve({ nodes: [] }),
+        }],
+      };
+
+      issuesFn.mockImplementation(async () => testIssues);
+
+      await service.searchIssues({
+        query: '',
+        projectId: 'project-123'
+      });
+
+      expect(issuesFn).toHaveBeenCalledWith({
+        filter: {
+          and: [{
+            project: {
+              id: { eq: 'project-123' }
+            }
+          }]
+        }
+      });
+    });
+
+    test('resolves project name to ID for filtering', async () => {
+      const testIssues = {
+        nodes: [{
+          id: 'issue-1',
+          identifier: 'TEST-1',
+          title: 'Test Issue',
+          priority: 1,
+          state: Promise.resolve({ name: 'In Progress' }),
+          assignee: Promise.resolve({ name: 'John Doe' }),
+          team: Promise.resolve({ name: 'Engineering' }),
+          labels: () => Promise.resolve({ nodes: [] }),
+        }],
+      };
+
+      const mockProjects = {
+        nodes: [{
+          id: 'project-123',
+          name: 'Test Project',
+          description: 'Test project description',
+          slugId: 'test-project',
+          icon: '🧪',
+          color: '#ff0000',
+          state: Promise.resolve({ name: 'Active', type: 'active' }),
+          creator: Promise.resolve({ id: 'user-1', name: 'John Doe' }),
+          lead: Promise.resolve(null),
+          startDate: null,
+          targetDate: null,
+          startedAt: null,
+          completedAt: null,
+          canceledAt: null,
+          progress: 0,
+          health: 'onTrack',
+          teams: () => Promise.resolve({ nodes: [] })
+        }],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: null
+        }
+      };
+
+      issuesFn.mockImplementation(async () => testIssues);
+      projectsFn.mockImplementation(async () => mockProjects);
+
+      await service.searchIssues({
+        query: '',
+        projectName: 'Test Project'
+      });
+
+      expect(projectsFn).toHaveBeenCalledWith({
+        nameFilter: 'Test Project',
+        first: 2,
+        after: undefined,
+        includeArchived: true
+      });
+
+      expect(issuesFn).toHaveBeenCalledWith({
+        filter: {
+          and: [{
+            project: {
+              id: { eq: 'project-123' }
+            }
+          }]
+        }
+      });
+    });
+
+    test('throws error when no projects match name', async () => {
+      const mockProjects = {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: null
+        }
+      };
+
+      projectsFn.mockImplementation(async () => mockProjects);
+
+      await expect(service.searchIssues({
+        query: '',
+        projectName: 'Nonexistent Project'
+      })).rejects.toThrow(
+        new McpError(ErrorCode.InvalidRequest, 'No projects found matching name: Nonexistent Project')
+      );
+
+      expect(issuesFn).not.toHaveBeenCalled();
+    });
+
+    test('throws error when multiple projects match name', async () => {
+      const mockProjects = {
+        nodes: [
+          {
+            id: 'project-123',
+            name: 'Website Project',
+            description: 'First project',
+            slugId: 'website-project',
+            icon: '🌐',
+            color: '#ff0000',
+            state: Promise.resolve({ name: 'Active', type: 'active' }),
+            creator: Promise.resolve({ id: 'user-1', name: 'John Doe' }),
+            lead: Promise.resolve(null),
+            startDate: null,
+            targetDate: null,
+            startedAt: null,
+            completedAt: null,
+            canceledAt: null,
+            progress: 0,
+            health: 'onTrack',
+            teams: () => Promise.resolve({ nodes: [] })
+          },
+          {
+            id: 'project-456',
+            name: 'Website Project 2',
+            description: 'Second project',
+            slugId: 'website-project-2',
+            icon: '🌐',
+            color: '#00ff00',
+            state: Promise.resolve({ name: 'Active', type: 'active' }),
+            creator: Promise.resolve({ id: 'user-1', name: 'John Doe' }),
+            lead: Promise.resolve(null),
+            startDate: null,
+            targetDate: null,
+            startedAt: null,
+            completedAt: null,
+            canceledAt: null,
+            progress: 0,
+            health: 'onTrack',
+            teams: () => Promise.resolve({ nodes: [] })
+          }
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: null
+        }
+      };
+
+      projectsFn.mockImplementation(async () => mockProjects);
+
+      await expect(service.searchIssues({
+        query: '',
+        projectName: 'Website'
+      })).rejects.toThrow(
+        new McpError(ErrorCode.InvalidRequest, 'Multiple projects match name "Website": "Website Project" (project-123), "Website Project 2" (project-456). Please use projectId instead.')
+      );
+
+      expect(issuesFn).not.toHaveBeenCalled();
+    });
+
+    test('combines project filter with other filters', async () => {
+      const testIssues = {
+        nodes: [{
+          id: 'issue-1',
+          identifier: 'TEST-1',
+          title: 'Test Issue',
+          priority: 1,
+          state: Promise.resolve({ name: 'In Progress' }),
+          assignee: Promise.resolve({ name: 'Current User' }),
+          team: Promise.resolve({ name: 'Engineering' }),
+          labels: () => Promise.resolve({ nodes: [] }),
+        }],
+      };
+
+      issuesFn.mockImplementation(async () => testIssues);
+
+      await service.searchIssues({
+        query: 'bug',
+        projectId: 'project-123',
+        filter: {
+          assignedTo: 'me'
+        }
+      });
+
+      expect(issuesFn).toHaveBeenCalledWith({
+        filter: {
+          and: [
+            {
+              or: [
+                { title: { contains: 'bug' } },
+                { description: { contains: 'bug' } },
+              ],
+            },
+            {
+              project: {
+                id: { eq: 'project-123' }
+              }
+            },
+            {
+              assignee: {
+                id: { eq: 'current-user' }
+              }
+            }
+          ]
+        }
+      });
+    });
   });
 
   describe('getTeams', () => {

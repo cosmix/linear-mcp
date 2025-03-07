@@ -190,7 +190,9 @@ Input Schema:
   "filter": {
     "assignedTo": "string | 'me'",
     "createdBy": "string | 'me'"
-  }
+  },
+  "projectId": "string",
+  "projectName": "string"
 }
 ```
 
@@ -220,6 +222,33 @@ Example searching for issues assigned to a specific user:
   "query": "",
   "filter": {
     "assignedTo": "user-id-123"
+  }
+}
+```
+
+Example searching for issues in a specific project:
+```json
+{
+  "query": "bug",
+  "projectId": "project-123"
+}
+```
+
+Example searching for issues by project name:
+```json
+{
+  "query": "feature",
+  "projectName": "Website Redesign"
+}
+```
+
+Example combining project filter with other filters:
+```json
+{
+  "query": "urgent",
+  "projectId": "project-123",
+  "filter": {
+    "assignedTo": "me"
   }
 }
 ```

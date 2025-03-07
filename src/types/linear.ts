@@ -47,6 +47,8 @@ export interface SearchIssuesArgs {
     assignedTo?: string;    // User ID or 'me' for self
     createdBy?: string;     // User ID or 'me' for self
   };
+  projectId?: string;       // Filter by project ID
+  projectName?: string;     // Filter by project name
 }
 
 export interface CreateIssueArgs {
@@ -243,7 +245,11 @@ export const isSearchIssuesArgs = (args: unknown): args is SearchIssuesArgs =>
       (typeof (args as SearchIssuesArgs).filter!.assignedTo === 'undefined' ||
         typeof (args as SearchIssuesArgs).filter!.assignedTo === 'string') &&
       (typeof (args as SearchIssuesArgs).filter!.createdBy === 'undefined' ||
-        typeof (args as SearchIssuesArgs).filter!.createdBy === 'string')));
+        typeof (args as SearchIssuesArgs).filter!.createdBy === 'string'))) &&
+  (typeof (args as SearchIssuesArgs).projectId === 'undefined' ||
+    typeof (args as SearchIssuesArgs).projectId === 'string') &&
+  (typeof (args as SearchIssuesArgs).projectName === 'undefined' ||
+    typeof (args as SearchIssuesArgs).projectName === 'string');
 
 export const isCreateIssueArgs = (args: unknown): args is CreateIssueArgs =>
   typeof args === 'object' &&

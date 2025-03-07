@@ -155,7 +155,7 @@ class LinearServer {
         },
         {
           name: 'search_issues',
-          description: 'Search for Linear issues using a query string and advanced filters. Supports filtering by assignee and creator, with special "me" keyword for self-reference. Examples: 1. Find your assigned issues: {query: "", filter: {assignedTo: "me"}}, 2. Find issues you created: {query: "", filter: {createdBy: "me"}}, 3. Find issues assigned to specific user: {query: "", filter: {assignedTo: "user-id-123"}}, 4. Combine with text search: {query: "bug", filter: {assignedTo: "me"}}',
+          description: 'Search for Linear issues using a query string and advanced filters. Supports filtering by assignee, creator, and project. Examples: 1. Find your assigned issues: {query: "", filter: {assignedTo: "me"}}, 2. Find issues you created: {query: "", filter: {createdBy: "me"}}, 3. Find issues assigned to specific user: {query: "", filter: {assignedTo: "user-id-123"}}, 4. Find issues in a specific project: {query: "bug", projectId: "project-123"}, 5. Find issues by project name: {query: "feature", projectName: "Website Redesign"}',
           inputSchema: {
             type: 'object',
             properties: {
@@ -181,6 +181,14 @@ class LinearServer {
                     description: 'Filter by creator. Use "me" to find issues created by the current user, or a specific user ID.',
                   }
                 }
+              },
+              projectId: {
+                type: 'string',
+                description: 'Filter issues by project ID. Takes precedence over projectName if both are provided.'
+              },
+              projectName: {
+                type: 'string',
+                description: 'Filter issues by project name. Will be used to find matching projects if projectId is not provided.'
               }
             },
             required: ['query'],

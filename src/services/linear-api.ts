@@ -435,6 +435,39 @@ export class LinearAPIService {
         });
       }
 
+      // Handle project filtering
+      if (args.projectId || args.projectName) {
+        // If projectName is provided but not projectId, try to find the project by name
+        if (!args.projectId && args.projectName) {
+          const projects = await this.getProjects({ nameFilter: args.projectName, first: 2 });
+          
+          if (projects.projects.length === 0) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `No projects found matching name: ${args.projectName}`
+            );
+          }
+          
+          if (projects.projects.length > 1) {
+            const projectNames = projects.projects.map(p => `"${p.name}" (${p.id})`).join(', ');
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `Multiple projects match name "${args.projectName}": ${projectNames}. Please use projectId instead.`
+            );
+          }
+          
+          // Exactly one match found, use its ID
+          args.projectId = projects.projects[0].id;
+        }
+        
+        // Add project filter condition
+        conditions.push({
+          project: {
+            id: { eq: args.projectId }
+          }
+        });
+      }
+
       // Handle user filters
       if (args.filter) {
         const currentUser = args.filter.assignedTo === 'me' || args.filter.createdBy === 'me' 
