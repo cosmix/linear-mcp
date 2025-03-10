@@ -10,7 +10,7 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 * Update existing issues with full field modification
 * Delete issue with validation
 * Self-assign issues using 'me' keyword
-* Advanced search by creator and assignee
+* Advanced search with Linear's powerful filtering capabilities
 * Add comments to issues with markdown support
 * Query Linear issues by ID or key with optional relationships
 * Search issues using custom queries with enhanced metadata
@@ -180,7 +180,7 @@ Input Schema:
 
 ### search_issues
 
-Search for Linear issues using a query string with advanced filtering.
+Search for Linear issues using a query string and advanced filters. Supports Linear's powerful filtering capabilities.
 
 Input Schema:
 ```json
@@ -188,6 +188,22 @@ Input Schema:
   "query": "string",
   "includeRelationships": "boolean",
   "filter": {
+    "title": { "contains": "string", "eq": "string", ... },
+    "description": { "contains": "string", "eq": "string", ... },
+    "priority": { "gte": "number", "lt": "number", ... },
+    "estimate": { "eq": "number", "in": ["number"], ... },
+    "dueDate": { "lt": "string", "gt": "string", ... },
+    "createdAt": { "gt": "P2W", "lt": "2024-01-01", ... },
+    "updatedAt": { "gt": "P1M", ... },
+    "completedAt": { "null": true, ... },
+    "assignee": { "id": { "eq": "string" }, "name": { "contains": "string" } },
+    "creator": { "id": { "eq": "string" }, "name": { "contains": "string" } },
+    "team": { "id": { "eq": "string" }, "key": { "eq": "string" } },
+    "state": { "type": { "eq": "started" }, "name": { "eq": "string" } },
+    "labels": { "name": { "in": ["string"] }, "every": { "name": { "eq": "string" } } },
+    "project": { "id": { "eq": "string" }, "name": { "contains": "string" } },
+    "and": [{ /* filters */ }],
+    "or": [{ /* filters */ }],
     "assignedTo": "string | 'me'",
     "createdBy": "string | 'me'"
   },
@@ -196,7 +212,96 @@ Input Schema:
 }
 ```
 
-Example searching for self-assigned issues:
+Supported Comparators:
+- String fields: `eq`, `neq`, `in`, `nin`, `contains`, `startsWith`, `endsWith` (plus case-insensitive variants)
+- Number fields: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `in`, `nin`
+- Date fields: `eq`, `neq`, `lt`, `lte`, `gt`, `gte` (supports ISO 8601 durations)
+
+Examples:
+
+Basic search:
+```json
+{
+  "query": "bug"
+}
+```
+
+High priority issues:
+```json
+{
+  "query": "",
+  "filter": {
+    "priority": { "gte": 2 }
+  }
+}
+```
+
+Issues due soon:
+```json
+{
+  "query": "",
+  "filter": {
+    "dueDate": { "lt": "P2W" }
+  }
+}
+```
+
+Issues with specific labels:
+```json
+{
+  "query": "",
+  "filter": {
+    "labels": {
+      "name": { "in": ["Bug", "Critical"] }
+    }
+  }
+}
+```
+
+Complex filters:
+```json
+{
+  "query": "",
+  "filter": {
+    "and": [
+      { "priority": { "gte": 2 } },
+      { "state": { "type": { "eq": "started" } } }
+    ],
+    "or": [
+      { "assignee": { "id": { "eq": "me" } } },
+      { "creator": { "id": { "eq": "me" } } }
+    ]
+  }
+}
+```
+
+Issues in a project:
+```json
+{
+  "query": "",
+  "filter": {
+    "project": {
+      "id": { "eq": "project-id" }
+    }
+  }
+}
+```
+
+Issues by state type:
+```json
+{
+  "query": "",
+  "filter": {
+    "state": {
+      "type": { "eq": "started" }
+    }
+  }
+}
+```
+
+Backward compatibility examples:
+
+Self-assigned issues:
 ```json
 {
   "query": "",
@@ -206,7 +311,7 @@ Example searching for self-assigned issues:
 }
 ```
 
-Example searching for issues created by you:
+Issues created by you:
 ```json
 {
   "query": "",
@@ -216,7 +321,7 @@ Example searching for issues created by you:
 }
 ```
 
-Example searching for issues assigned to a specific user:
+Issues assigned to a specific user:
 ```json
 {
   "query": "",
@@ -226,7 +331,7 @@ Example searching for issues assigned to a specific user:
 }
 ```
 
-Example searching for issues in a specific project:
+Issues in a specific project:
 ```json
 {
   "query": "bug",
@@ -234,22 +339,11 @@ Example searching for issues in a specific project:
 }
 ```
 
-Example searching for issues by project name:
+Issues by project name:
 ```json
 {
   "query": "feature",
   "projectName": "Website Redesign"
-}
-```
-
-Example combining project filter with other filters:
-```json
-{
-  "query": "urgent",
-  "projectId": "project-123",
-  "filter": {
-    "assignedTo": "me"
-  }
 }
 ```
 
@@ -393,9 +487,14 @@ Example filtering by health status:
   * 'me' keyword support in create/update operations
   * Efficient user ID caching
 * Advanced search capabilities:
-  * Filter by assignee (including self)
-  * Filter by creator (including self)
+  * Comprehensive filtering with Linear's API
+  * Support for all field comparators
+  * Relationship filtering
+  * Logical operators (and, or)
+  * Relative date filtering
+  * Filter by assignee/creator (including self)
   * Support for specific user IDs
+  * Project filtering by ID or name
   * Efficient query optimization
 
 ## Error Handling
