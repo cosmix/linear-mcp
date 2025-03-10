@@ -35,20 +35,81 @@ export interface LinearUser {
 }
 
 // Internal type used by the service for actual Linear API calls
-export interface LinearSearchFilter {
-  assignedToUserIds?: string[];
-  creatorIds?: string[];
+// Comparator types for different field types
+export interface StringComparators {
+  eq?: string;
+  neq?: string;
+  in?: string[];
+  nin?: string[];
+  eqIgnoreCase?: string;
+  neqIgnoreCase?: string;
+  startsWith?: string;
+  notStartsWith?: string;
+  endsWith?: string;
+  notEndsWith?: string;
+  contains?: string;
+  notContains?: string;
+  containsIgnoreCase?: string;
+  notContainsIgnoreCase?: string;
+  null?: boolean;
+}
+
+export interface NumberComparators {
+  eq?: number;
+  neq?: number;
+  in?: number[];
+  nin?: number[];
+  lt?: number;
+  lte?: number;
+  gt?: number;
+  gte?: number;
+  null?: boolean;
+}
+
+export interface DateComparators {
+  eq?: string;
+  neq?: string;
+  lt?: string;
+  lte?: string;
+  gt?: string;
+  gte?: string;
+  null?: boolean;
+}
+
+// Issue field filters
+export interface IssueFieldFilters {
+  title?: StringComparators;
+  description?: StringComparators;
+  priority?: NumberComparators;
+  estimate?: NumberComparators;
+  dueDate?: DateComparators;
+  createdAt?: DateComparators;
+  updatedAt?: DateComparators;
+  completedAt?: DateComparators;
+  startedAt?: DateComparators;
+  canceledAt?: DateComparators;
+  // Relationship filters
+  assignee?: { id?: StringComparators; name?: StringComparators };
+  creator?: { id?: StringComparators; name?: StringComparators };
+  team?: { id?: StringComparators; name?: StringComparators; key?: StringComparators };
+  state?: { id?: StringComparators; name?: StringComparators; type?: StringComparators };
+  labels?: { name?: StringComparators; every?: { name?: StringComparators } };
+  project?: { id?: StringComparators; name?: StringComparators };
 }
 
 export interface SearchIssuesArgs {
   query: string;
   includeRelationships?: boolean;
-  filter?: {
+  filter?: IssueFieldFilters & {
+    // Maintain backward compatibility
     assignedTo?: string;    // User ID or 'me' for self
     createdBy?: string;     // User ID or 'me' for self
+    // Support logical operators
+    and?: IssueFieldFilters[];
+    or?: IssueFieldFilters[];
   };
-  projectId?: string;       // Filter by project ID
-  projectName?: string;     // Filter by project name
+  projectId?: string;       // Filter by project ID (backward compatibility)
+  projectName?: string;     // Filter by project name (backward compatibility)
 }
 
 export interface CreateIssueArgs {

@@ -420,10 +420,71 @@ export class LinearAPIService {
     }
   }
 
+  private async resolveUserReferences(filter: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const resolvedFilter = { ...filter };
+    let currentUser: LinearUser | null = null;
+
+    // Helper function to resolve 'me' references
+    const resolveMe = async (value: unknown): Promise<unknown> => {
+      if (value === 'me') {
+        if (!currentUser) {
+          currentUser = await this.getCurrentUser();
+        }
+        return currentUser.id;
+      }
+      return value;
+    };
+
+    // Resolve user references in comparators
+    const resolveComparators = async (comparators: Record<string, unknown>): Promise<Record<string, unknown>> => {
+      const resolved: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(comparators)) {
+        if (value === 'me') {
+          resolved[key] = await resolveMe(value);
+        } else if (Array.isArray(value)) {
+          resolved[key] = await Promise.all(value.map(v => resolveMe(v)));
+        } else {
+          resolved[key] = value;
+        }
+      }
+      return resolved;
+    };
+
+    // Recursively resolve user references in filters
+    const resolveFilters = async (obj: Record<string, unknown>): Promise<Record<string, unknown>> => {
+      const resolved: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value && typeof value === 'object') {
+          if (key === 'assignee' || key === 'creator') {
+            const userFilter = value as Record<string, unknown>;
+            if (userFilter.id && typeof userFilter.id === 'object') {
+              resolved[key] = {
+                ...userFilter,
+                id: await resolveComparators(userFilter.id as Record<string, unknown>)
+              };
+            } else {
+              resolved[key] = value;
+            }
+          } else if (key === 'and' || key === 'or') {
+            const arrayValue = value as Record<string, unknown>[];
+            resolved[key] = await Promise.all(arrayValue.map(v => resolveFilters(v)));
+          } else {
+            resolved[key] = await resolveFilters(value as Record<string, unknown>);
+          }
+        } else {
+          resolved[key] = value;
+        }
+      }
+      return resolved;
+    };
+
+    return resolveFilters(resolvedFilter);
+  }
+
   async searchIssues(args: SearchIssuesArgs): Promise<LinearIssueSearchResult[]> {
     try {
       // Build filter conditions
-      const conditions: any[] = [];
+      const conditions: Record<string, unknown>[] = [];
 
       // Add search query condition if provided
       if (args.query) {
@@ -431,11 +492,11 @@ export class LinearAPIService {
           or: [
             { title: { contains: args.query } },
             { description: { contains: args.query } },
-          ],
+          ] as Record<string, unknown>[],
         });
       }
 
-      // Handle project filtering
+      // Handle project filtering (backward compatibility)
       if (args.projectId || args.projectName) {
         // If projectName is provided but not projectId, try to find the project by name
         if (!args.projectId && args.projectName) {
@@ -464,37 +525,55 @@ export class LinearAPIService {
         conditions.push({
           project: {
             id: { eq: args.projectId }
-          }
+          } as Record<string, unknown>
         });
       }
 
-      // Handle user filters
+      // Handle advanced filters
       if (args.filter) {
-        const currentUser = args.filter.assignedTo === 'me' || args.filter.createdBy === 'me' 
-          ? await this.getCurrentUser()
-          : null;
+        const { assignedTo, createdBy, and, or, ...fieldFilters } = args.filter;
 
-        if (args.filter.assignedTo) {
+        // Handle backward compatibility filters
+        if (assignedTo) {
           conditions.push({
             assignee: {
-              id: { eq: args.filter.assignedTo === 'me' ? currentUser!.id : args.filter.assignedTo }
-            }
+              id: { eq: assignedTo }
+            } as Record<string, unknown>
           });
         }
 
-        if (args.filter.createdBy) {
+        if (createdBy) {
           conditions.push({
             creator: {
-              id: { eq: args.filter.createdBy === 'me' ? currentUser!.id : args.filter.createdBy }
-            }
+              id: { eq: createdBy }
+            } as Record<string, unknown>
           });
+        }
+
+        // Handle field filters
+        if (Object.keys(fieldFilters).length > 0) {
+          conditions.push(fieldFilters as Record<string, unknown>);
+        }
+
+        // Handle logical operators
+        if (and) {
+          conditions.push({ and: and as Record<string, unknown>[] });
+        }
+
+        if (or) {
+          conditions.push({ or: or as Record<string, unknown>[] });
         }
       }
 
       // Combine all conditions with AND
-      const filter = conditions.length > 0 
+      let filter: Record<string, unknown> | undefined = conditions.length > 0 
         ? { and: conditions }
         : undefined;
+
+      // Resolve any 'me' references in the filter
+      if (filter) {
+        filter = await this.resolveUserReferences(filter);
+      }
 
       const issues = await this.client.issues({ filter });
 
