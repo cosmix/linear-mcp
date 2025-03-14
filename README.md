@@ -7,6 +7,7 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 * Create new issues and subissues with label support
 * Retrieve the list of linear projects
 * Retrieve the project updates
+* Create a new project update with health status
 * Update existing issues with full field modification
 * Delete issue with validation
 * Self-assign issues using 'me' keyword
@@ -465,6 +466,47 @@ Example filtering by health status:
 }
 ```
 
+### create_project_update
+
+Create a new update for a Linear project.
+
+Input Schema:
+```json
+{
+  "projectId": "string",
+  "body": "string",
+  "health": "onTrack | atRisk | offTrack",
+  "isDiffHidden": "boolean"
+}
+```
+
+Example creating a basic project update:
+```json
+{
+  "projectId": "project-123",
+  "body": "Sprint completed successfully with all planned features delivered."
+}
+```
+
+Example with health status:
+```json
+{
+  "projectId": "project-123",
+  "body": "Sprint progress is slower than expected due to technical challenges.",
+  "health": "atRisk"
+}
+```
+
+Example with hidden diff:
+```json
+{
+  "projectId": "project-123",
+  "body": "Project kickoff meeting completed.",
+  "health": "onTrack",
+  "isDiffHidden": true
+}
+```
+
 ## Technical Details
 
 * Built with TypeScript in strict mode
@@ -496,6 +538,10 @@ Example filtering by health status:
   * Support for specific user IDs
   * Project filtering by ID or name
   * Efficient query optimization
+* Project management features:
+  * Project listing with filtering and pagination
+  * Project update creation with health status tracking
+  * Project update retrieval with filtering options
 
 ## Error Handling
 

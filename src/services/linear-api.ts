@@ -10,6 +10,8 @@ import {
   DeleteIssueArgs,
   GetProjectUpdatesArgs,
   GetProjectsArgs,
+  CreateProjectUpdateArgs,
+  ProjectUpdateHealthType,
   LinearIssue, 
   LinearIssueSearchResult,
   LinearComment,
@@ -500,7 +502,12 @@ export class LinearAPIService {
       if (args.projectId || args.projectName) {
         // If projectName is provided but not projectId, try to find the project by name
         if (!args.projectId && args.projectName) {
-          const projects = await this.getProjects({ nameFilter: args.projectName, first: 2 });
+          const projects = await this.getProjects({ 
+            nameFilter: args.projectName, 
+            first: 2,
+            after: undefined,
+            includeArchived: true 
+          });
           
           if (projects.projects.length === 0) {
             throw new McpError(
@@ -628,7 +635,7 @@ export class LinearAPIService {
       });
       
       // Process and format the results
-      const formattedProjects = await Promise.all(
+      const formattedProjects: LinearProject[] = await Promise.all(
         projects.nodes.map(async (project) => {
           // Fetch related data
           const [creator, lead, teams, state] = await Promise.all([
@@ -676,7 +683,7 @@ export class LinearAPIService {
       // Extract pagination information
       const pageInfo = {
         hasNextPage: projects.pageInfo.hasNextPage,
-        endCursor: projects.pageInfo.endCursor
+        endCursor: projects.pageInfo.endCursor || undefined
       };
       
       return {
@@ -730,6 +737,13 @@ export class LinearAPIService {
       }
       
       if (args.health) {
+        // Validate health is a valid enum value
+        if (!Object.values(ProjectUpdateHealthType).includes(args.health as ProjectUpdateHealthType)) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Invalid health value: ${args.health}. Valid values are: ${Object.values(ProjectUpdateHealthType).join(', ')}`
+          );
+        }
         filter.health = { eq: args.health };
       }
 
@@ -764,6 +778,7 @@ export class LinearAPIService {
       }
       
       if (args.health) {
+        // We've already validated the health value earlier
         filteredUpdates = filteredUpdates.filter(update => 
           update.health === args.health
         );
@@ -814,7 +829,7 @@ export class LinearAPIService {
       // Extract pagination information
       const pageInfo = {
         hasNextPage: projectUpdates.pageInfo.hasNextPage,
-        endCursor: projectUpdates.pageInfo.endCursor
+        endCursor: projectUpdates.pageInfo.endCursor || undefined
       };
 
       return {
@@ -833,6 +848,101 @@ export class LinearAPIService {
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to fetch project updates: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Creates a new project update
+   * @param args The project update creation parameters
+   * @returns The created project update details
+   */
+  async createProjectUpdate(args: CreateProjectUpdateArgs): Promise<any> {
+    try {
+      // Verify project exists
+      const project = await this.client.project(args.projectId);
+      if (!project) {
+        throw new McpError(ErrorCode.InvalidRequest, `Project not found: ${args.projectId}`);
+      }
+
+      // Prepare input for Linear SDK
+      const input: Record<string, any> = {
+        input: {
+          projectId: args.projectId
+        }
+      };
+
+      // Add optional fields if provided
+      if (args.body !== undefined) input.input.body = args.body;
+      if (args.health !== undefined) {
+        // Validate health is a valid enum value
+        if (!Object.values(ProjectUpdateHealthType).includes(args.health as ProjectUpdateHealthType)) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Invalid health value: ${args.health}. Valid values are: ${Object.values(ProjectUpdateHealthType).join(', ')}`
+          );
+        }
+        input.input.health = args.health;
+      }
+      if (args.isDiffHidden !== undefined) input.input.isDiffHidden = args.isDiffHidden;
+
+      // Create the project update using Linear client's GraphQL mutation
+      const mutation = `
+        mutation ProjectUpdateCreate($input: ProjectUpdateCreateInput!) {
+          projectUpdateCreate(input: $input) {
+            lastSyncId
+            projectUpdate {
+              id
+              body
+              health
+              project {
+                id
+                name
+              }
+              user {
+                id
+                name
+              }
+              createdAt
+              updatedAt
+            }
+            success
+          }
+        }
+      `;
+
+      // Execute the mutation
+      const result = await (this.client as any)._request(mutation, input);
+      
+      if (!result.projectUpdateCreate.success || !result.projectUpdateCreate.projectUpdate) {
+        throw new McpError(ErrorCode.InternalError, 'Failed to create project update');
+      }
+
+      // Get the created project update
+      const projectUpdate = result.projectUpdateCreate.projectUpdate;
+      
+      return {
+        id: projectUpdate.id,
+        body: projectUpdate.body,
+        health: projectUpdate.health,
+        project: {
+          id: projectUpdate.project.id,
+          name: projectUpdate.project.name
+        },
+        user: {
+          id: projectUpdate.user.id || '',
+          name: projectUpdate.user.name || ''
+        },
+        createdAt: new Date(projectUpdate.createdAt).toISOString(),
+        updatedAt: new Date(projectUpdate.updatedAt).toISOString()
+      };
+    } catch (error) {
+      if (error instanceof McpError) {
+        throw error;
+      }
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to create project update: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

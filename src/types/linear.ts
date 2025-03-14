@@ -19,6 +19,19 @@ export interface GetProjectUpdatesArgs {
   health?: string;
 }
 
+export enum ProjectUpdateHealthType {
+  onTrack = "onTrack",
+  atRisk = "atRisk",
+  offTrack = "offTrack"
+}
+
+export interface CreateProjectUpdateArgs {
+  projectId: string;              // Required: The project to create an update for
+  body?: string;                  // Optional: Content in markdown format
+  health?: ProjectUpdateHealthType; // Optional: Health status of the project
+  isDiffHidden?: boolean;         // Optional: Whether to hide the diff between updates
+}
+
 export interface GetTeamsArgs {
   nameFilter?: string; // Optional filter to search by team name
 }
@@ -380,6 +393,17 @@ export const isGetProjectUpdatesArgs = (args: unknown): args is GetProjectUpdate
    typeof (args as GetProjectUpdatesArgs).userId === 'string') &&
   (typeof (args as GetProjectUpdatesArgs).health === 'undefined' || 
    typeof (args as GetProjectUpdatesArgs).health === 'string');
+
+export const isCreateProjectUpdateArgs = (args: unknown): args is CreateProjectUpdateArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as CreateProjectUpdateArgs).projectId === 'string' &&
+  (typeof (args as CreateProjectUpdateArgs).body === 'undefined' || 
+   typeof (args as CreateProjectUpdateArgs).body === 'string') &&
+  (typeof (args as CreateProjectUpdateArgs).health === 'undefined' || 
+   Object.values(ProjectUpdateHealthType).includes((args as CreateProjectUpdateArgs).health as ProjectUpdateHealthType)) &&
+  (typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'undefined' || 
+   typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'boolean');
 
 // Helper functions for data cleaning
 export const extractMentions = (text: string | null | undefined): { issues: string[]; users: string[] } => {

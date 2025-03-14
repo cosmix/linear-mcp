@@ -8,7 +8,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LinearAPIService } from './services/linear-api.js';
-import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs, isDeleteIssueArgs, isGetProjectUpdatesArgs, isGetProjectsArgs } from './types/linear.js';
+import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs, isDeleteIssueArgs, isGetProjectUpdatesArgs, isGetProjectsArgs, isCreateProjectUpdateArgs } from './types/linear.js';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
@@ -36,7 +36,7 @@ class LinearServer {
     this.linearAPI = new LinearAPIService(API_KEY as string);
 
     this.setupToolHandlers();
-    
+
     // Error handling
     this.server.onerror = (error) => console.error('[MCP Error]', error);
     process.on('SIGINT', async () => {
@@ -301,6 +301,33 @@ class LinearServer {
             required: ['projectId']
           }
         },
+        {
+          name: 'create_project_update',
+          description: 'Create a new update for a Linear project',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: {
+                type: 'string',
+                description: 'ID of the project for which to create an update'
+              },
+              body: {
+                type: 'string',
+                description: 'Content of the update in markdown format'
+              },
+              health: {
+                type: 'string',
+                enum: ['onTrack', 'atRisk', 'offTrack'],
+                description: 'Health status of the project at the time of the update'
+              },
+              isDiffHidden: {
+                type: 'boolean',
+                description: 'Whether to hide the diff between this update and the previous one'
+              }
+            },
+            required: ['projectId']
+          }
+        },
       ],
     }));
 
@@ -325,6 +352,8 @@ class LinearServer {
             return await this.handleGetProjects(request.params.arguments);
           case 'get_project_updates':
             return await this.handleGetProjectUpdates(request.params.arguments);
+          case 'create_project_update':
+            return await this.handleCreateProjectUpdate(request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -499,9 +528,28 @@ class LinearServer {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(projectUpdates, null, 2),
-        },
-      ],
+          text: JSON.stringify(projectUpdates, null, 2)
+        }
+      ]
+    };
+  }
+
+  private async handleCreateProjectUpdate(args: unknown) {
+    if (!isCreateProjectUpdateArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid create_project_update arguments'
+      );
+    }
+
+    const projectUpdate = await this.linearAPI.createProjectUpdate(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(projectUpdate, null, 2)
+        }
+      ]
     };
   }
 
