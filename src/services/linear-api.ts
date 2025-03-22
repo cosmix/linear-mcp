@@ -1,4 +1,4 @@
-import { LinearClient, Issue, Comment, IssueRelation } from '@linear/sdk';
+import { LinearClient, Issue, Comment, IssueRelation, Cycle } from '@linear/sdk';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { 
   GetIssueArgs, 
@@ -12,6 +12,7 @@ import {
   GetProjectsArgs,
   CreateProjectUpdateArgs,
   ProjectUpdateHealthType,
+  CycleFilter,
   LinearIssue, 
   LinearIssueSearchResult,
   LinearComment,
@@ -24,6 +25,18 @@ import {
   extractMentions,
   cleanDescription
 } from '../types/linear.js';
+
+// Interface for cycle data
+interface LinearCycle {
+  id: string;
+  number: number;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  isCompleted: boolean;
+  teamId: string;
+}
 
 export interface LinearClientInterface extends Pick<LinearClient, 'issue' | 'issues' | 'createIssue' | 'teams' | 'createComment' | 'viewer' | 'deleteIssue' | 'project' | 'projects'> {}
 
@@ -422,6 +435,136 @@ export class LinearAPIService {
     }
   }
 
+  /**
+   * Fetches cycles for a specific team
+   * @param teamId The ID of the team to fetch cycles for
+   * @returns Array of cycles with their details
+   */
+  private async getTeamCycles(teamId: string): Promise<LinearCycle[]> {
+    try {
+      // Get the team
+      const teams = await this.client.teams();
+      const team = teams.nodes.find(t => t.id === teamId);
+      
+      if (!team) {
+        throw new McpError(ErrorCode.InvalidRequest, `Team not found: ${teamId}`);
+      }
+
+      // Get the team's cycles
+      const cycles = await team.cycles();
+      
+      return cycles.nodes.map(cycle => {
+        // Determine if cycle is active based on dates and completion status
+        const now = new Date();
+        const startDate = cycle.startsAt ? new Date(cycle.startsAt) : null;
+        const endDate = cycle.endsAt ? new Date(cycle.endsAt) : null;
+        const isActive = startDate && endDate 
+          ? now >= startDate && now <= endDate && !cycle.completedAt
+          : false;
+        
+        return {
+          id: cycle.id,
+          number: cycle.number,
+          name: cycle.name || '', // Default to empty string if undefined
+          startsAt: cycle.startsAt?.toISOString() || '',
+          endsAt: cycle.endsAt?.toISOString() || '',
+          isActive,
+          isCompleted: Boolean(cycle.completedAt),
+          teamId: team.id
+        };
+      });
+    } catch (error) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to fetch team cycles: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Resolves a cycle filter to a specific cycle ID
+   * @param filter The cycle filter to resolve
+   * @returns The resolved cycle ID
+   */
+  private async resolveCycleFilter(filter: CycleFilter): Promise<string> {
+    const { type, id, teamId } = filter;
+    
+    // For specific type with UUID-style ID, just return the ID
+    if (type === 'specific' && id && !(/^\d+$/.test(id))) {
+      return id;
+    }
+    
+    // For all other cases, including specific type with numeric ID, we need teamId
+    if (!teamId) {
+      throw new McpError(
+        ErrorCode.InvalidRequest,
+        `teamId is required for cycle type: ${type}`
+      );
+    }
+    
+    // Fetch team cycles
+    const cycles = await this.getTeamCycles(teamId);
+    
+    // For specific type with numeric ID (cycle number), find the matching cycle
+    if (type === 'specific' && id && /^\d+$/.test(id)) {
+      const cycleNumber = parseInt(id, 10);
+      const matchingCycle = cycles.find(c => c.number === cycleNumber);
+      
+      if (!matchingCycle) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `No cycle found with number ${cycleNumber} for team ${teamId}`
+        );
+      }
+      
+      return matchingCycle.id;
+    }
+    
+    if (cycles.length === 0) {
+      throw new McpError(ErrorCode.InvalidRequest, `No cycles found for team ${teamId}`);
+    }
+    
+    // Sort cycles by start date (newest first)
+    const sortedCycles = [...cycles].sort((a, b) => 
+      new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()
+    );
+    
+    // Find the active cycle
+    const activeCycle = sortedCycles.find(c => c.isActive);
+    
+    // Find completed cycles
+    const completedCycles = sortedCycles.filter(c => c.isCompleted)
+      .sort((a, b) => new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime());
+    
+    // Find upcoming cycles (not active and not completed)
+    const upcomingCycles = sortedCycles.filter(c => !c.isActive && !c.isCompleted)
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    
+    switch (type) {
+      case 'current':
+        if (!activeCycle) {
+          throw new McpError(ErrorCode.InvalidRequest, `No active cycle found for team ${teamId}`);
+        }
+        return activeCycle.id;
+        
+      case 'next':
+        if (upcomingCycles.length === 0) {
+          throw new McpError(ErrorCode.InvalidRequest, `No upcoming cycles found for team ${teamId}`);
+        }
+        return upcomingCycles[0].id;
+        
+      case 'previous':
+        if (completedCycles.length === 0) {
+          throw new McpError(ErrorCode.InvalidRequest, `No completed cycles found for team ${teamId}`);
+        }
+        // Get the most recently completed cycle
+        return completedCycles[0].id;
+        
+      default:
+        throw new McpError(ErrorCode.InvalidRequest, `Invalid cycle type: ${type}`);
+    }
+  }
+
   private async resolveUserReferences(filter: Record<string, unknown>): Promise<Record<string, unknown>> {
     const resolvedFilter = { ...filter };
     let currentUser: LinearUser | null = null;
@@ -538,7 +681,7 @@ export class LinearAPIService {
 
       // Handle advanced filters
       if (args.filter) {
-        const { assignedTo, createdBy, and, or, ...fieldFilters } = args.filter;
+        const { assignedTo, createdBy, and, or, cycle, ...fieldFilters } = args.filter;
 
         // Handle backward compatibility filters
         if (assignedTo) {
@@ -555,6 +698,34 @@ export class LinearAPIService {
               id: { eq: createdBy }
             } as Record<string, unknown>
           });
+        }
+
+        // Handle cycle filtering
+        if (cycle) {
+          try {
+            // Resolve the cycle filter to a specific cycle ID
+            const cycleId = await this.resolveCycleFilter(cycle);
+            
+            // Add cycle condition to the filter
+            // Make sure cycleId is a string
+            if (typeof cycleId === 'string') {
+              conditions.push({
+                cycle: {
+                  id: { eq: cycleId }
+                } as Record<string, unknown>
+              });
+            } else {
+              throw new McpError(
+                ErrorCode.InvalidRequest,
+                `Invalid cycle ID: ${cycleId}. Expected a string.`
+              );
+            }
+          } catch (error) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `Failed to resolve cycle filter: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
         }
 
         // Handle field filters

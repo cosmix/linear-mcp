@@ -89,6 +89,13 @@ export interface DateComparators {
   null?: boolean;
 }
 
+// Cycle filter for querying issues by cycle
+export interface CycleFilter {
+  type: 'current' | 'next' | 'previous' | 'specific';
+  id?: string;      // Required when type is 'specific', ignored for other types
+  teamId: string;   // Required to identify which team's cycles to use
+}
+
 // Issue field filters
 export interface IssueFieldFilters {
   title?: StringComparators;
@@ -108,6 +115,7 @@ export interface IssueFieldFilters {
   state?: { id?: StringComparators; name?: StringComparators; type?: StringComparators };
   labels?: { name?: StringComparators; every?: { name?: StringComparators } };
   project?: { id?: StringComparators; name?: StringComparators };
+  cycle?: { id?: StringComparators };  // Filter by cycle ID
 }
 
 export interface SearchIssuesArgs {
@@ -120,6 +128,8 @@ export interface SearchIssuesArgs {
     // Support logical operators
     and?: IssueFieldFilters[];
     or?: IssueFieldFilters[];
+    // Cycle filter for easy access
+    cycle?: CycleFilter;    // Filter by cycle (current, next, previous, or specific)
   };
   projectId?: string;       // Filter by project ID (backward compatibility)
   projectName?: string;     // Filter by project name (backward compatibility)
@@ -309,6 +319,16 @@ export const isGetIssueArgs = (args: unknown): args is GetIssueArgs =>
   args !== null &&
   typeof (args as GetIssueArgs).issueId === 'string';
 
+// Type guard for CycleFilter
+export const isCycleFilter = (filter: unknown): filter is CycleFilter =>
+  typeof filter === 'object' &&
+  filter !== null &&
+  ['current', 'next', 'previous', 'specific'].includes((filter as CycleFilter).type) &&
+  typeof (filter as CycleFilter).teamId === 'string' &&
+  // For 'specific' type, id is required and must be a string
+  ((filter as CycleFilter).type !== 'specific' || 
+   (typeof (filter as CycleFilter).id === 'string' && (filter as CycleFilter).id !== undefined));
+
 export const isSearchIssuesArgs = (args: unknown): args is SearchIssuesArgs =>
   typeof args === 'object' &&
   args !== null &&
@@ -319,7 +339,9 @@ export const isSearchIssuesArgs = (args: unknown): args is SearchIssuesArgs =>
       (typeof (args as SearchIssuesArgs).filter!.assignedTo === 'undefined' ||
         typeof (args as SearchIssuesArgs).filter!.assignedTo === 'string') &&
       (typeof (args as SearchIssuesArgs).filter!.createdBy === 'undefined' ||
-        typeof (args as SearchIssuesArgs).filter!.createdBy === 'string'))) &&
+        typeof (args as SearchIssuesArgs).filter!.createdBy === 'string') &&
+      (typeof (args as SearchIssuesArgs).filter!.cycle === 'undefined' ||
+        isCycleFilter((args as SearchIssuesArgs).filter!.cycle)))) &&
   (typeof (args as SearchIssuesArgs).projectId === 'undefined' ||
     typeof (args as SearchIssuesArgs).projectId === 'string') &&
   (typeof (args as SearchIssuesArgs).projectName === 'undefined' ||
