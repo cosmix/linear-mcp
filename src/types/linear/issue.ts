@@ -23,6 +23,7 @@ export interface UpdateIssueArgs {
   priority?: number;    // New priority
   assigneeId?: string;  // User ID or 'me' for self
   labelIds?: string[];  // New labels
+  cycleId?: string;     // Cycle ID to assign the issue to
 }
 
 export interface DeleteIssueArgs {

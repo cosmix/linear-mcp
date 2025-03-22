@@ -1,4 +1,5 @@
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { CycleFilter } from '../../types/linear/cycle';
 import {
   CreateIssueArgs,
   DeleteIssueArgs,
@@ -6,10 +7,17 @@ import {
   LinearIssue,
   UpdateIssueArgs
 } from '../../types/linear/issue';
-import { LinearBaseService } from './base-service';
+import { LinearBaseService, LinearClientInterface } from './base-service';
+import { CycleService } from './cycle-service';
 import { cleanDescription, extractMentions, getComments, getRelationships } from './utils';
 
 export class IssueService extends LinearBaseService {
+  private cycleService: CycleService;
+
+  constructor(clientOrApiKey: string | LinearClientInterface) {
+    super(clientOrApiKey);
+    this.cycleService = new CycleService(this.client);
+  }
   /**
    * Gets detailed information about a specific issue
    * @param args The issue retrieval arguments
@@ -216,6 +224,26 @@ export class IssueService extends LinearBaseService {
    * @param args The issue update arguments
    * @returns The updated issue
    */
+  /**
+   * Checks if a string might be a cycle name or type that needs resolution
+   * @param cycleId The cycle ID to check
+   * @returns True if the cycleId might be a cycle name or type
+   */
+  private isCycleNameOrType(cycleId: string): boolean {
+    // Check if it's a cycle type
+    if (['current', 'next', 'previous'].includes(cycleId)) {
+      return true;
+    }
+    
+    // Check if it's a numeric cycle number
+    if (/^\d+$/.test(cycleId)) {
+      return true;
+    }
+    
+    // Otherwise, assume it's a UUID
+    return false;
+  }
+
   async updateIssue(args: UpdateIssueArgs): Promise<LinearIssue> {
     try {
       const issue = await this.client.issue(args.issueId);
@@ -238,6 +266,50 @@ export class IssueService extends LinearBaseService {
       if (args.priority !== undefined) updatePayload.priority = args.priority;
       if (assigneeId !== undefined) updatePayload.assigneeId = assigneeId;
       if (args.labelIds !== undefined) updatePayload.labelIds = args.labelIds;
+      
+      // Handle cycle ID resolution if needed
+      if (args.cycleId !== undefined) {
+        // Get the team ID for the issue
+        const team = await issue.team;
+        if (!team) {
+          throw new McpError(ErrorCode.InvalidRequest, `Could not get team for issue: ${args.issueId}`);
+        }
+        
+        // Check if the cycleId is a cycle name or type that needs resolution
+        if (this.isCycleNameOrType(args.cycleId)) {
+          try {
+            // Create a cycle filter based on the provided cycleId
+            let cycleFilter: CycleFilter;
+            
+            if (['current', 'next', 'previous'].includes(args.cycleId)) {
+              // It's a cycle type
+              cycleFilter = {
+                type: args.cycleId as 'current' | 'next' | 'previous',
+                teamId: team.id
+              };
+            } else {
+              // It's a cycle number
+              cycleFilter = {
+                type: 'specific',
+                id: args.cycleId,
+                teamId: team.id
+              };
+            }
+            
+            // Resolve the cycle filter to a specific cycle ID
+            const resolvedCycleId = await this.cycleService.resolveCycleFilter(cycleFilter);
+            updatePayload.cycleId = resolvedCycleId;
+          } catch (error) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `Failed to resolve cycle: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        } else {
+          // It's already a UUID, use it directly
+          updatePayload.cycleId = args.cycleId;
+        }
+      }
 
       // Update the issue
       await issue.update(updatePayload);

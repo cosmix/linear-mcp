@@ -95,7 +95,7 @@ class LinearServer {
         },
         {
           name: 'update_issue',
-          description: 'Update an existing Linear issue. Supports self-assignment using "me" as assigneeId.',
+          description: 'Update an existing Linear issue. Supports self-assignment using "me" as assigneeId and cycle assignment via cycleId. You can provide a cycle name (e.g., "2"), a relative cycle at the moment of updating ("current", "next", "previous"), or a cycle UUID directly.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -129,6 +129,10 @@ class LinearServer {
                 items: {
                   type: 'string'
                 }
+              },
+              cycleId: {
+                type: 'string',
+                description: 'ID of the cycle to assign the issue to. You can provide a cycle name (e.g., "2"), a relative cycle ("current", "next", "previous"), or a cycle UUID directly.'
               }
             },
             required: ['issueId'],
