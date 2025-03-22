@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { LinearAPIService } from '../linear-api';
+import { LinearAPIService } from '../linear/index.js';
 import { createMockLinearClient } from './test-utils';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 

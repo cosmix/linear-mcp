@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeEach, mock } from 'bun:test';
-import { LinearAPIService } from '../linear-api';
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import { ProjectUpdateHealthType } from '../../types/linear/project';
+import { LinearAPIService } from '../linear/index';
 import { createMockLinearClient } from './test-utils';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { ProjectUpdateHealthType } from '../../types/linear.js';
 
 describe('LinearAPIService - Project Management', () => {
   let service: LinearAPIService;

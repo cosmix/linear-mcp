@@ -1,5 +1,5 @@
 import { mock } from 'bun:test';
-import { LinearClientInterface } from '../linear-api';
+import { LinearClientInterface } from '../linear/base-service.js';
 
 /**
  * Creates a mock Linear client with all required methods and properties
