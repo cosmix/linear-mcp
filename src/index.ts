@@ -7,8 +7,8 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { LinearAPIService } from './services/linear-api.js';
-import { isGetIssueArgs, isSearchIssuesArgs, isCreateIssueArgs, isUpdateIssueArgs, isGetTeamsArgs, isCreateCommentArgs, isDeleteIssueArgs, isGetProjectUpdatesArgs, isGetProjectsArgs, isCreateProjectUpdateArgs } from './types/linear.js';
+import { LinearAPIService } from './services/linear/index';
+import { isCreateCommentArgs, isCreateIssueArgs, isCreateProjectUpdateArgs, isDeleteIssueArgs, isGetIssueArgs, isGetProjectUpdatesArgs, isGetProjectsArgs, isGetTeamsArgs, isSearchIssuesArgs, isUpdateIssueArgs } from './types/linear/index';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
