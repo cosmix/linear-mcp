@@ -12,6 +12,7 @@ A Model Context Protocol (MCP) server implementation that provides access to Lin
 * Delete issue with validation
 * Self-assign issues using 'me' keyword
 * Advanced search with Linear's powerful filtering capabilities
+* Filter issues by cycle (current, next, previous, or specific cycle by UUID or number)
 * Add comments to issues with markdown support
 * Query Linear issues by ID or key with optional relationships
 * Search issues using custom queries with enhanced metadata
@@ -218,6 +219,21 @@ Supported Comparators:
 - Number fields: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `in`, `nin`
 - Date fields: `eq`, `neq`, `lt`, `lte`, `gt`, `gte` (supports ISO 8601 durations)
 
+Cycle Filtering:
+- Filter by cycle using the `cycle` property in the filter:
+  ```json
+  {
+    "query": "",
+    "filter": {
+      "cycle": {
+        "type": "current", // or "next", "previous", "specific"
+        "teamId": "team-123", // Required for current, next, previous, and when using cycle number with specific
+        "id": "456" // Required for "specific" type (can be UUID or cycle number)
+      }
+    }
+  }
+  ```
+
 Examples:
 
 Basic search:
@@ -295,6 +311,95 @@ Issues by state type:
   "filter": {
     "state": {
       "type": { "eq": "started" }
+    }
+  }
+}
+```
+
+Issues in the current cycle:
+```json
+{
+  "query": "",
+  "filter": {
+    "cycle": {
+      "type": "current",
+      "teamId": "team-123"
+    }
+  }
+}
+```
+
+Issues in the next cycle:
+```json
+{
+  "query": "",
+  "filter": {
+    "cycle": {
+      "type": "next",
+      "teamId": "team-123"
+    }
+  }
+}
+```
+
+Issues in the previous cycle:
+```json
+{
+  "query": "",
+  "filter": {
+    "cycle": {
+      "type": "previous",
+      "teamId": "team-123"
+    }
+  }
+}
+```
+
+Issues in a specific cycle by UUID:
+```json
+{
+  "query": "",
+  "filter": {
+    "cycle": {
+      "type": "specific",
+      "id": "cycle-456"
+    }
+  }
+}
+```
+
+Issues in a specific cycle by cycle number:
+```json
+{
+  "query": "",
+  "filter": {
+    "cycle": {
+      "type": "specific",
+      "id": "2",
+      "teamId": "team-123"
+    }
+  }
+}
+```
+
+High priority bugs in the current cycle assigned to me:
+```json
+{
+  "query": "bug",
+  "filter": {
+    "and": [
+      {
+        "cycle": {
+          "type": "current",
+          "teamId": "team-123"
+        }
+      },
+      {
+        "priority": { "gte": 2 }
+      }
+    ],
+    "assignee": {
+      "id": { "eq": "me" }
     }
   }
 }
