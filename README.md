@@ -156,7 +156,8 @@ Input Schema:
   "status": "string",     
   "priority": "number",   
   "assigneeId": "string | 'me'",
-  "labelIds": ["string"]  
+  "labelIds": ["string"],
+  "cycleId": "string"
 }
 ```
 
@@ -165,6 +166,35 @@ Example self-assigning an issue:
 {
   "issueId": "ISSUE-123",
   "assigneeId": "me"
+}
+```
+
+Example updating an issue's cycle with a direct ID:
+```json
+{
+  "issueId": "ISSUE-123",
+  "cycleId": "cycle-abc123"
+}
+```
+
+To move an issue to a specific cycle type (current/next/previous), use a two-step process:
+
+1. First, resolve the cycle ID using the appropriate filter:
+```javascript
+// Get the current cycle ID
+const cycleFilter = {
+  type: "current",
+  teamId: "team-123"
+};
+// Use resolveCycleFilter through search_issues or other appropriate method
+// The API will return the actual cycle ID (e.g., "cycle-abc123")
+```
+
+2. Then update the issue with the resolved cycle ID:
+```json
+{
+  "issueId": "ISSUE-123",
+  "cycleId": "[resolved-cycle-id]"
 }
 ```
 
