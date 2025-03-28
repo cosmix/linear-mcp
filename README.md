@@ -128,10 +128,10 @@ Input Schema:
 ```json
 {
   "issueId": "string",    
-  "title": "string",      
+  "title": "string",
   "description": "string",
-  "status": "string",     
-  "priority": "number",   
+  "status": "string",     // Expects status NAME (e.g., "In Progress"). Must be valid for the issue's team.
+  "priority": "number",   // Expects 0 (None) to 4 (Low).
   "assigneeId": "string | 'me'",
   "labelIds": ["string"],
   "cycleId": "string"
