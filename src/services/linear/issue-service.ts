@@ -262,19 +262,41 @@ export class IssueService extends LinearBaseService {
       const updatePayload: Record<string, any> = {};
       if (args.title !== undefined) updatePayload.title = args.title;
       if (args.description !== undefined) updatePayload.description = args.description;
-      if (args.status !== undefined) updatePayload.status = args.status;
-      if (args.priority !== undefined) updatePayload.priority = args.priority;
       if (assigneeId !== undefined) updatePayload.assigneeId = assigneeId;
       if (args.labelIds !== undefined) updatePayload.labelIds = args.labelIds;
+
+      // Get the team ID for the issue - needed for status and cycle resolution
+      const team = await issue.team;
+      if (!team) {
+        throw new McpError(ErrorCode.InvalidRequest, `Could not get team for issue: ${args.issueId}`);
+      }
+
+      // Handle Status Resolution
+      if (args.status !== undefined) {
+        try {
+          const states = await team.states();
+          const matchingState = states.nodes.find(state => state.name.toLowerCase() === args.status!.toLowerCase());
+          if (!matchingState) {
+            throw new McpError(ErrorCode.InvalidParams, `Invalid status name "${args.status}" for team "${team.name}". Valid statuses are: ${states.nodes.map(s => s.name).join(', ')}`);
+          }
+          updatePayload.stateId = matchingState.id; // Use stateId instead of status
+        } catch (error) {
+          if (error instanceof McpError) throw error;
+          throw new McpError(ErrorCode.InternalError, `Failed to resolve status: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+
+      // Handle Priority Validation
+      if (args.priority !== undefined) {
+        if (args.priority < 0 || args.priority > 4) {
+          throw new McpError(ErrorCode.InvalidParams, `Invalid priority value "${args.priority}". Priority must be between 0 (No priority) and 4 (Low).`);
+        }
+        updatePayload.priority = args.priority;
+      }
       
       // Handle cycle ID resolution if needed
       if (args.cycleId !== undefined) {
-        // Get the team ID for the issue
-        const team = await issue.team;
-        if (!team) {
-          throw new McpError(ErrorCode.InvalidRequest, `Could not get team for issue: ${args.issueId}`);
-        }
-        
+        // Team already fetched above
         // Check if the cycleId is a cycle name or type that needs resolution
         if (this.isCycleNameOrType(args.cycleId)) {
           try {

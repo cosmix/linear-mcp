@@ -113,11 +113,11 @@ class LinearServer {
               },
               status: {
                 type: 'string',
-                description: 'New status for the issue',
+                description: 'New status name for the issue (e.g., "Todo", "In Progress"). Must be valid for the issue\'s team.',
               },
               priority: {
                 type: 'number',
-                description: 'New priority for the issue (0-4)',
+                description: 'New priority for the issue (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)',
               },
               assigneeId: {
                 type: 'string',
