@@ -1,16 +1,15 @@
-import { GetTeamsArgs } from './team';
-import { GetIssueArgs } from './issue';
-import { SearchIssuesArgs } from './search';
-import { CreateIssueArgs, UpdateIssueArgs, DeleteIssueArgs } from './issue';
 import { CreateCommentArgs } from './comment';
-import { GetProjectsArgs, GetProjectUpdatesArgs, CreateProjectUpdateArgs, ProjectUpdateHealthType } from './project';
-import { CycleFilter, isCycleFilter } from './cycle';
+import { isCycleFilter } from './cycle';
+import { CreateIssueArgs, DeleteIssueArgs, GetIssueArgs, UpdateIssueArgs } from './issue';
+import { CreateProjectUpdateArgs, GetProjectsArgs, GetProjectUpdatesArgs, ProjectUpdateHealthType } from './project';
+import { SearchIssuesArgs } from './search';
+import { GetTeamsArgs } from './team';
 
 export const isGetTeamsArgs = (args: unknown): args is GetTeamsArgs =>
   typeof args === 'object' &&
   args !== null &&
-  (typeof (args as GetTeamsArgs).nameFilter === 'undefined' || 
-   typeof (args as GetTeamsArgs).nameFilter === 'string');
+  (typeof (args as GetTeamsArgs).nameFilter === 'undefined' ||
+    typeof (args as GetTeamsArgs).nameFilter === 'string');
 
 export const isGetIssueArgs = (args: unknown): args is GetIssueArgs =>
   typeof args === 'object' &&
@@ -45,7 +44,7 @@ export const isCreateIssueArgs = (args: unknown): args is CreateIssueArgs =>
   (typeof (args as CreateIssueArgs).status === 'undefined' || typeof (args as CreateIssueArgs).status === 'string') &&
   (typeof (args as CreateIssueArgs).priority === 'undefined' || typeof (args as CreateIssueArgs).priority === 'number') &&
   (typeof (args as CreateIssueArgs).assigneeId === 'undefined' || typeof (args as CreateIssueArgs).assigneeId === 'string') &&
-  (typeof (args as CreateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as CreateIssueArgs).labelIds) && 
+  (typeof (args as CreateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as CreateIssueArgs).labelIds) &&
     (args as CreateIssueArgs).labelIds!.every(id => typeof id === 'string'))) &&
   // Ensure either teamId or parentId is provided
   ((args as CreateIssueArgs).teamId !== undefined || (args as CreateIssueArgs).parentId !== undefined);
@@ -64,7 +63,7 @@ export const isUpdateIssueArgs = (args: unknown): args is UpdateIssueArgs =>
   (typeof (args as UpdateIssueArgs).status === 'undefined' || typeof (args as UpdateIssueArgs).status === 'string') &&
   (typeof (args as UpdateIssueArgs).priority === 'undefined' || typeof (args as UpdateIssueArgs).priority === 'number') &&
   (typeof (args as UpdateIssueArgs).assigneeId === 'undefined' || typeof (args as UpdateIssueArgs).assigneeId === 'string') &&
-  (typeof (args as UpdateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as UpdateIssueArgs).labelIds) && 
+  (typeof (args as UpdateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as UpdateIssueArgs).labelIds) &&
     (args as UpdateIssueArgs).labelIds!.every(id => typeof id === 'string')));
 
 export const isCreateCommentArgs = (args: unknown): args is CreateCommentArgs =>
@@ -76,41 +75,41 @@ export const isCreateCommentArgs = (args: unknown): args is CreateCommentArgs =>
 export const isGetProjectsArgs = (args: unknown): args is GetProjectsArgs =>
   typeof args === 'object' &&
   args !== null &&
-  (typeof (args as GetProjectsArgs).nameFilter === 'undefined' || 
-   typeof (args as GetProjectsArgs).nameFilter === 'string') &&
-  (typeof (args as GetProjectsArgs).includeArchived === 'undefined' || 
-   typeof (args as GetProjectsArgs).includeArchived === 'boolean') &&
-  (typeof (args as GetProjectsArgs).first === 'undefined' || 
-   typeof (args as GetProjectsArgs).first === 'number') &&
-  (typeof (args as GetProjectsArgs).after === 'undefined' || 
-   typeof (args as GetProjectsArgs).after === 'string');
+  (typeof (args as GetProjectsArgs).nameFilter === 'undefined' ||
+    typeof (args as GetProjectsArgs).nameFilter === 'string') &&
+  (typeof (args as GetProjectsArgs).includeArchived === 'undefined' ||
+    typeof (args as GetProjectsArgs).includeArchived === 'boolean') &&
+  (typeof (args as GetProjectsArgs).first === 'undefined' ||
+    typeof (args as GetProjectsArgs).first === 'number') &&
+  (typeof (args as GetProjectsArgs).after === 'undefined' ||
+    typeof (args as GetProjectsArgs).after === 'string');
 
 export const isGetProjectUpdatesArgs = (args: unknown): args is GetProjectUpdatesArgs =>
   typeof args === 'object' &&
   args !== null &&
   typeof (args as GetProjectUpdatesArgs).projectId === 'string' &&
-  (typeof (args as GetProjectUpdatesArgs).includeArchived === 'undefined' || 
-   typeof (args as GetProjectUpdatesArgs).includeArchived === 'boolean') &&
-  (typeof (args as GetProjectUpdatesArgs).first === 'undefined' || 
-   typeof (args as GetProjectUpdatesArgs).first === 'number') &&
-  (typeof (args as GetProjectUpdatesArgs).after === 'undefined' || 
-   typeof (args as GetProjectUpdatesArgs).after === 'string') &&
-  (typeof (args as GetProjectUpdatesArgs).createdAfter === 'undefined' || 
-   typeof (args as GetProjectUpdatesArgs).createdAfter === 'string') &&
-  (typeof (args as GetProjectUpdatesArgs).createdBefore === 'undefined' || 
-   typeof (args as GetProjectUpdatesArgs).createdBefore === 'string') &&
-  (typeof (args as GetProjectUpdatesArgs).userId === 'undefined' || 
-   typeof (args as GetProjectUpdatesArgs).userId === 'string') &&
-  (typeof (args as GetProjectUpdatesArgs).health === 'undefined' || 
-   typeof (args as GetProjectUpdatesArgs).health === 'string');
+  (typeof (args as GetProjectUpdatesArgs).includeArchived === 'undefined' ||
+    typeof (args as GetProjectUpdatesArgs).includeArchived === 'boolean') &&
+  (typeof (args as GetProjectUpdatesArgs).first === 'undefined' ||
+    typeof (args as GetProjectUpdatesArgs).first === 'number') &&
+  (typeof (args as GetProjectUpdatesArgs).after === 'undefined' ||
+    typeof (args as GetProjectUpdatesArgs).after === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).createdAfter === 'undefined' ||
+    typeof (args as GetProjectUpdatesArgs).createdAfter === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).createdBefore === 'undefined' ||
+    typeof (args as GetProjectUpdatesArgs).createdBefore === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).userId === 'undefined' ||
+    typeof (args as GetProjectUpdatesArgs).userId === 'string') &&
+  (typeof (args as GetProjectUpdatesArgs).health === 'undefined' ||
+    typeof (args as GetProjectUpdatesArgs).health === 'string');
 
 export const isCreateProjectUpdateArgs = (args: unknown): args is CreateProjectUpdateArgs =>
   typeof args === 'object' &&
   args !== null &&
   typeof (args as CreateProjectUpdateArgs).projectId === 'string' &&
-  (typeof (args as CreateProjectUpdateArgs).body === 'undefined' || 
-   typeof (args as CreateProjectUpdateArgs).body === 'string') &&
-  (typeof (args as CreateProjectUpdateArgs).health === 'undefined' || 
-   Object.values(ProjectUpdateHealthType).includes((args as CreateProjectUpdateArgs).health as any)) &&
-  (typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'undefined' || 
-   typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'boolean');
+  (typeof (args as CreateProjectUpdateArgs).body === 'undefined' ||
+    typeof (args as CreateProjectUpdateArgs).body === 'string') &&
+  (typeof (args as CreateProjectUpdateArgs).health === 'undefined' ||
+    Object.values(ProjectUpdateHealthType).includes((args as CreateProjectUpdateArgs).health as any)) &&
+  (typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'undefined' ||
+    typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'boolean');

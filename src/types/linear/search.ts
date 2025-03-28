@@ -1,4 +1,4 @@
-import { StringComparators, NumberComparators, DateComparators } from './base';
+import { DateComparators, NumberComparators, StringComparators } from './base';
 import { CycleFilter } from './cycle';
 
 // Issue field filters

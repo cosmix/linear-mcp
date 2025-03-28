@@ -1,11 +1,11 @@
 import { LinearBaseService, LinearClientInterface } from './base-service';
-import { TeamService } from './team-service';
+import { CommentService } from './comment-service';
 import { CycleService } from './cycle-service';
 import { IssueService } from './issue-service';
-import { CommentService } from './comment-service';
 import { ProjectService } from './project-service';
 import { SearchService } from './search-service';
-import { extractMentions, cleanDescription, getComments, getRelationships } from './utils';
+import { TeamService } from './team-service';
+import { cleanDescription, extractMentions, getComments, getRelationships } from './utils';
 
 /**
  * Main Linear API service that combines all specialized services
@@ -99,15 +99,7 @@ export class LinearAPIService {
 
 // Export all services and utilities
 export {
-  LinearBaseService,
-  TeamService,
-  CycleService,
-  IssueService,
-  CommentService,
-  ProjectService,
-  SearchService,
-  extractMentions,
-  cleanDescription,
-  getComments,
-  getRelationships
+  cleanDescription, CommentService, CycleService, extractMentions, getComments,
+  getRelationships, IssueService, LinearBaseService, ProjectService,
+  SearchService, TeamService
 };

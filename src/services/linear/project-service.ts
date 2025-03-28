@@ -20,14 +20,14 @@ export class ProjectService extends LinearBaseService {
       // Validate and normalize arguments
       const first = Math.min(args.first || 50, 100); // Cap at 100
       const includeArchived = args.includeArchived !== false; // Default to true if not explicitly set to false
-      
+
       // Build filter conditions
       const filter: Record<string, any> = {};
-      
+
       if (args.nameFilter) {
         filter.name = { contains: args.nameFilter };
       }
-      
+
       // Fetch projects with pagination
       const projects = await (this.client as any).projects({
         first,
@@ -35,7 +35,7 @@ export class ProjectService extends LinearBaseService {
         includeArchived,
         filter: Object.keys(filter).length > 0 ? filter : undefined
       });
-      
+
       // Process and format the results
       const formattedProjects = await Promise.all(
         projects.nodes.map(async (project: any) => {
@@ -46,7 +46,7 @@ export class ProjectService extends LinearBaseService {
             project.teams(),
             project.state
           ]);
-          
+
           return {
             id: project.id,
             name: project.name,
@@ -81,13 +81,13 @@ export class ProjectService extends LinearBaseService {
           };
         })
       );
-      
+
       // Extract pagination information
       const pageInfo = {
         hasNextPage: projects.pageInfo.hasNextPage,
         endCursor: projects.pageInfo.endCursor || undefined
       };
-      
+
       return {
         projects: formattedProjects,
         pageInfo,
@@ -114,7 +114,7 @@ export class ProjectService extends LinearBaseService {
       // Validate and normalize arguments
       const first = Math.min(args.first || 50, 100); // Cap at 100
       const includeArchived = args.includeArchived !== false; // Default to true if not explicitly set to false
-      
+
       // Handle 'me' user ID reference
       let userId = args.userId;
       if (userId === 'me') {
@@ -130,19 +130,19 @@ export class ProjectService extends LinearBaseService {
 
       // Build filter conditions for project updates
       const filter: Record<string, any> = {};
-      
+
       if (args.createdAfter) {
         filter.createdAt = { ...filter.createdAt, gte: new Date(args.createdAfter) };
       }
-      
+
       if (args.createdBefore) {
         filter.createdAt = { ...filter.createdAt, lte: new Date(args.createdBefore) };
       }
-      
+
       if (userId) {
         filter.user = { id: { eq: userId } };
       }
-      
+
       if (args.health) {
         // Validate health is a valid enum value
         if (!Object.values(ProjectUpdateHealthType).includes(args.health as ProjectUpdateHealthType)) {
@@ -165,32 +165,32 @@ export class ProjectService extends LinearBaseService {
 
       // Get all updates first
       let allUpdates = [...projectUpdates.nodes];
-      
+
       // Prepare filtered updates
       let filteredUpdates = [...allUpdates];
-      
+
       // Apply date filters in memory
       if (args.createdAfter) {
         const afterDate = new Date(args.createdAfter);
-        filteredUpdates = filteredUpdates.filter(update => 
+        filteredUpdates = filteredUpdates.filter(update =>
           new Date(update.createdAt) >= afterDate
         );
       }
-      
+
       if (args.createdBefore) {
         const beforeDate = new Date(args.createdBefore);
-        filteredUpdates = filteredUpdates.filter(update => 
+        filteredUpdates = filteredUpdates.filter(update =>
           new Date(update.createdAt) <= beforeDate
         );
       }
-      
+
       if (args.health) {
         // We've already validated the health value earlier
-        filteredUpdates = filteredUpdates.filter(update => 
+        filteredUpdates = filteredUpdates.filter(update =>
           update.health === args.health
         );
       }
-      
+
       // For user filtering, we need to pre-fetch all users
       if (userId) {
         // Get all users for the updates
@@ -202,7 +202,7 @@ export class ProjectService extends LinearBaseService {
             };
           })
         );
-        
+
         // Filter by user ID
         filteredUpdates = updateUsers
           .filter(item => item.user?.id === userId)
@@ -213,7 +213,7 @@ export class ProjectService extends LinearBaseService {
       const formattedUpdates = await Promise.all(
         filteredUpdates.map(async (update) => {
           const user = await update.user;
-          
+
           return {
             id: update.id,
             body: update.body,
@@ -320,14 +320,14 @@ export class ProjectService extends LinearBaseService {
 
       // Execute the mutation
       const result = await (this.client as any)._request(mutation, input);
-      
+
       if (!result.projectUpdateCreate.success || !result.projectUpdateCreate.projectUpdate) {
         throw new McpError(ErrorCode.InternalError, 'Failed to create project update');
       }
 
       // Get the created project update
       const projectUpdate = result.projectUpdateCreate.projectUpdate;
-      
+
       return {
         id: projectUpdate.id,
         body: projectUpdate.body,

@@ -1,4 +1,4 @@
-import { Issue, Comment } from '@linear/sdk';
+import { Comment, Issue } from '@linear/sdk';
 import { LinearComment, LinearRelationship } from '../../types/linear/issue';
 
 /**
@@ -8,12 +8,12 @@ import { LinearComment, LinearRelationship } from '../../types/linear/issue';
  */
 export const extractMentions = (text: string | null | undefined): { issues: string[]; users: string[] } => {
   if (!text) return { issues: [], users: [] };
-  
+
   // Linear uses identifiers like ABC-123
   const issues = Array.from(text.matchAll(/([A-Z]+-\d+)/g)).map(m => m[1]);
   // Linear uses @ mentions
   const users = Array.from(text.matchAll(/@([a-zA-Z0-9_-]+)/g)).map(m => m[1]);
-  
+
   return {
     issues: [...new Set(issues)], // Deduplicate
     users: [...new Set(users)]    // Deduplicate
@@ -27,10 +27,10 @@ export const extractMentions = (text: string | null | undefined): { issues: stri
  */
 export const cleanDescription = (description: string | null | undefined): string | null => {
   if (!description) return null;
-  
+
   // Remove excessive whitespace
   let cleaned = description.replace(/\s+/g, ' ').trim();
-  
+
   // Remove common markdown artifacts while preserving content
   cleaned = cleaned
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert markdown links to just text
@@ -38,7 +38,7 @@ export const cleanDescription = (description: string | null | undefined): string
     .replace(/(\*\*|__)(.*?)\1/g, '$2')      // Remove bold markers but keep content
     .replace(/(\*|_)(.*?)\1/g, '$2')         // Remove italic markers but keep content
     .replace(/`([^`]+)`/g, '$1')             // Remove inline code markers but keep content
-    
+
   return cleaned;
 };
 

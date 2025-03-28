@@ -1,6 +1,6 @@
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { SearchIssuesArgs } from '../../types/linear/search';
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { LinearIssueSearchResult } from '../../types/linear/issue';
+import { SearchIssuesArgs } from '../../types/linear/search';
 import { LinearBaseService, LinearClientInterface } from './base-service';
 import { CycleService } from './cycle-service';
 import { ProjectService } from './project-service';

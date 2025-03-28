@@ -1,4 +1,4 @@
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { CreateCommentArgs } from '../../types/linear/comment';
 import { LinearComment } from '../../types/linear/issue';
 import { LinearBaseService } from './base-service';
@@ -22,7 +22,7 @@ export class CommentService extends LinearBaseService {
         issueId: issue.id,
         body: args.body
       });
-      
+
       if (!result.success || !result.comment) {
         throw new McpError(ErrorCode.InternalError, 'Failed to create comment');
       }

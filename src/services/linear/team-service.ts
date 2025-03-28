@@ -1,4 +1,4 @@
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { GetTeamsArgs, LinearTeam } from '../../types/linear/team';
 import { LinearBaseService } from './base-service';
 
@@ -24,7 +24,7 @@ export class TeamService extends LinearBaseService {
     try {
       const teams = await this.client.teams();
       let filteredTeams = teams.nodes.filter(team => team && team.id); // Only require id to be present
-      
+
       // Apply name filter if provided
       if (args.nameFilter) {
         const filter = args.nameFilter.toLowerCase();
@@ -59,23 +59,23 @@ export class TeamService extends LinearBaseService {
       // Get the team
       const teams = await this.client.teams();
       const team = teams.nodes.find(t => t.id === teamId);
-      
+
       if (!team) {
         throw new McpError(ErrorCode.InvalidRequest, `Team not found: ${teamId}`);
       }
 
       // Get the team's cycles
       const cycles = await team.cycles();
-      
+
       return cycles.nodes.map(cycle => {
         // Determine if cycle is active based on dates and completion status
         const now = new Date();
         const startDate = cycle.startsAt ? new Date(cycle.startsAt) : null;
         const endDate = cycle.endsAt ? new Date(cycle.endsAt) : null;
-        const isActive = startDate && endDate 
+        const isActive = startDate && endDate
           ? now >= startDate && now <= endDate && !cycle.completedAt
           : false;
-        
+
         return {
           id: cycle.id,
           number: cycle.number,

@@ -12,5 +12,5 @@ export const isCycleFilter = (filter: unknown): filter is CycleFilter =>
   ['current', 'next', 'previous', 'specific'].includes((filter as CycleFilter).type) &&
   typeof (filter as CycleFilter).teamId === 'string' &&
   // For 'specific' type, id is required and must be a string
-  ((filter as CycleFilter).type !== 'specific' || 
-   (typeof (filter as CycleFilter).id === 'string' && (filter as CycleFilter).id !== undefined));
+  ((filter as CycleFilter).type !== 'specific' ||
+    (typeof (filter as CycleFilter).id === 'string' && (filter as CycleFilter).id !== undefined));
