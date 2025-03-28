@@ -262,7 +262,27 @@ export class IssueService extends LinearBaseService {
       const updatePayload: Record<string, any> = {};
       if (args.title !== undefined) updatePayload.title = args.title;
       if (args.description !== undefined) updatePayload.description = args.description;
-      if (args.status !== undefined) updatePayload.status = args.status;
+      
+      // Handle status update by converting status name to stateId
+      if (args.status !== undefined) {
+        const team = await issue.team;
+        if (!team) {
+          throw new McpError(ErrorCode.InvalidRequest, `Could not get team for issue: ${args.issueId}`);
+        }
+        
+        const states = await team.states();
+        const targetState = states.nodes.find(state => state.name === args.status);
+        
+        if (!targetState) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Invalid status: ${args.status}. Available statuses are: ${states.nodes.map(s => s.name).join(', ')}`
+          );
+        }
+        
+        updatePayload.stateId = targetState.id;
+      }
+      
       if (args.priority !== undefined) updatePayload.priority = args.priority;
       if (assigneeId !== undefined) updatePayload.assigneeId = assigneeId;
       if (args.labelIds !== undefined) updatePayload.labelIds = args.labelIds;
