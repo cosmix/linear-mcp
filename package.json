@@ -15,14 +15,14 @@
   "author": "Dimosthenis Kaponis",
   "license": "MIT",
   "dependencies": {
-    "@linear/sdk": "^38.0.0",
-    "@modelcontextprotocol/sdk": "^1.4.1",
-    "@types/node": "^22.10.10",
-    "typescript": "^5.7.3"
+    "@linear/sdk": "^39.0.0",
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "vite": "^6.0.11",
-    "@types/bun": "latest"
+    "vite": "^6.2.6",
+    "@types/bun": "^1.2.9"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
