@@ -176,6 +176,23 @@ export function createMockLinearClient(): LinearClientInterface {
     deleteIssue: mock(() => Promise.resolve()) as any,
     project: projectFn as any,
     projects: projectsFn as any,
+    // Document method mocks
+    document: mock(() => Promise.resolve(null)) as any,
+    documents: mock(() => Promise.resolve({
+      nodes: [],
+      pageInfo: { hasNextPage: false, endCursor: null }
+    })) as any,
+    createDocument: mock(() => Promise.resolve({
+      success: true,
+      document: null
+    })) as any,
+    documentUpdate: mock(() => Promise.resolve({
+      success: true,
+      document: null
+    })) as any,
+    deleteDocument: mock(() => Promise.resolve({
+      success: true
+    })) as any,
     _request: requestFn as any
   };
 
