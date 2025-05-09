@@ -1,6 +1,7 @@
 import { LinearBaseService, LinearClientInterface } from './base-service';
 import { CommentService } from './comment-service';
 import { CycleService } from './cycle-service';
+import { DocumentService } from './document-service';
 import { IssueService } from './issue-service';
 import { ProjectService } from './project-service';
 import { SearchService } from './search-service';
@@ -18,6 +19,7 @@ export class LinearAPIService {
   private commentService: CommentService;
   private projectService: ProjectService;
   private searchService: SearchService;
+  private documentService: DocumentService;
 
   constructor(clientOrApiKey: string | LinearClientInterface) {
     // Initialize the client
@@ -38,6 +40,7 @@ export class LinearAPIService {
     this.commentService = new CommentService(clientOrApiKey);
     this.projectService = new ProjectService(clientOrApiKey);
     this.searchService = new SearchService(clientOrApiKey);
+    this.documentService = new DocumentService(clientOrApiKey);
   }
 
   // Team operations
@@ -80,6 +83,27 @@ export class LinearAPIService {
     return this.projectService.createProjectUpdate(args);
   }
 
+  // Document operations
+  async getDocuments(args: import('../../types').GetDocumentsArgs) {
+    return this.documentService.getDocuments(args);
+  }
+
+  async getDocument(args: import('../../types').GetDocumentArgs) {
+    return this.documentService.getDocument(args);
+  }
+
+  async createDocument(args: import('../../types').CreateDocumentArgs) {
+    return this.documentService.createDocument(args);
+  }
+
+  async updateDocument(args: import('../../types').UpdateDocumentArgs) {
+    return this.documentService.updateDocument(args);
+  }
+
+  async deleteDocument(args: import('../../types').DeleteDocumentArgs) {
+    return this.documentService.deleteDocument(args);
+  }
+
   // Search operations
   async searchIssues(args: import('../../types').SearchIssuesArgs) {
     return this.searchService.searchIssues(args);
@@ -99,7 +123,7 @@ export class LinearAPIService {
 
 // Export all services and utilities
 export {
-  cleanDescription, CommentService, CycleService, extractMentions, getComments,
+  cleanDescription, CommentService, CycleService, DocumentService, extractMentions, getComments,
   getRelationships, IssueService, LinearBaseService, ProjectService,
   SearchService, TeamService
 };
