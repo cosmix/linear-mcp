@@ -210,7 +210,7 @@ export class DocumentService extends LinearBaseService {
       if (args.isPublic !== undefined) input.isPublic = args.isPublic;
 
       // Create document
-      const result = await (this.client as any).createDocument({ input });
+      const result = await (this.client as any).createDocument(input);
 
       if (!result.document) {
         throw new McpError(ErrorCode.InternalError, 'Failed to create document');
@@ -296,7 +296,7 @@ export class DocumentService extends LinearBaseService {
       if (args.isPublic !== undefined) input.isPublic = args.isPublic;
 
       // Update document
-      const result = await (this.client as any).documentUpdate({ input });
+      const result = await (this.client as any).documentUpdate(input);
 
       if (!result.document) {
         throw new McpError(ErrorCode.InternalError, 'Failed to update document');
