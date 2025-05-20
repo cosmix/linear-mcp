@@ -15,7 +15,7 @@
   "author": "Dimosthenis Kaponis",
   "license": "MIT",
   "dependencies": {
-    "@linear/sdk": "^39.2.1",
+    "@linear/sdk": "^40.0.0",
     "@modelcontextprotocol/sdk": "^1.11.2",
     "@types/node": "^22.15.19",
     "typescript": "^5.8.3"
