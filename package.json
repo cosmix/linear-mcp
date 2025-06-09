@@ -16,7 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@linear/sdk": "^40.0.0",
+    "@linear/sdk": "^44.0.0",
     "@types/node": "^22.15.29",
     "typescript": "^5.8.3"
   },
