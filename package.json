@@ -17,7 +17,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.3",
     "@types/node": "^22.15.30",
-    "@linear/sdk": "^44.0.0",
+    "@linear/sdk": "^44.1.0",
     "typescript": "^5.8.3"
   },
   "devDependencies": {
