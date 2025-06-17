@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "vite": "^6.3.5",
-    "@types/bun": "^1.2.15"
+    "@types/bun": "^1.2.16"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
