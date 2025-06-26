@@ -8,7 +8,12 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LinearAPIService } from './services/linear/index';
-import { isCreateCommentArgs, isCreateIssueArgs, isCreateProjectUpdateArgs, isDeleteIssueArgs, isGetIssueArgs, isGetProjectUpdatesArgs, isGetProjectsArgs, isGetTeamsArgs, isSearchIssuesArgs, isUpdateIssueArgs } from './types/linear/index';
+import {
+  isCreateCommentArgs, isCreateDocumentArgs, isCreateIssueArgs, isCreateProjectUpdateArgs,
+  isDeleteDocumentArgs, isDeleteIssueArgs, isGetDocumentArgs, isGetDocumentsArgs, isGetIssueArgs,
+  isGetProjectUpdatesArgs, isGetProjectsArgs, isGetTeamsArgs, isSearchIssuesArgs,
+  isUpdateDocumentArgs, isUpdateIssueArgs
+} from './types/linear/index';
 
 // Get Linear API key from environment variable
 const API_KEY = process.env.LINEAR_API_KEY;
@@ -332,6 +337,155 @@ class LinearServer {
             required: ['projectId']
           }
         },
+        {
+          name: 'get_documents',
+          description: 'Get a list of Linear documents with optional name filtering and pagination\n\nExamples:\n1. Basic usage: {}\n2. Filter by name: {nameFilter: \"meeting notes\"}\n3. Include archived: {includeArchived: true, nameFilter: \"roadmap\"}\n4. Pagination: {first: 25, after: \"cursor-from-previous-response\"}\n5. Filter by project: {projectId: \"project-123\"}\n6. Filter by team: {teamId: \"team-abc\"}\n\nReturns a paginated list of documents with metadata including:\n- Document details (id, title, content preview, etc.)\n- Creator information\n- Last editor information  \n- Project and team associations\n- Creation and update timestamps',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              nameFilter: {
+                type: 'string',
+                description: 'Optional filter to search by document title'
+              },
+              includeArchived: {
+                type: 'boolean',
+                description: 'Whether to include archived documents (default: true)',
+                default: true
+              },
+              teamId: {
+                type: 'string',
+                description: 'Filter documents by team ID'
+              },
+              projectId: {
+                type: 'string',
+                description: 'Filter documents by project ID'
+              },
+              first: {
+                type: 'number',
+                description: 'Number of items to return (default: 50, max: 100)',
+                default: 50
+              },
+              after: {
+                type: 'string',
+                description: 'Cursor for pagination. Use the endCursor from a previous response to fetch the next page'
+              }
+            }
+          }
+        },
+        {
+          name: 'get_document',
+          description: 'Get detailed information about a specific Linear document\n\nReturns comprehensive document information including:\n- Full document content in markdown format\n- Metadata (creation date, last edited date, etc.)\n- Creator and editor information\n- Team and project associations\n- Document URL\n\nYou can retrieve a document using either its ID or its URL slug.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              documentId: {
+                type: 'string',
+                description: 'The ID of the Linear document'
+              },
+              documentSlug: {
+                type: 'string',
+                description: 'The URL slug of the document (alternative to documentId)'
+              },
+              includeFull: {
+                type: 'boolean',
+                description: 'Whether to include the full document content (default: true)',
+                default: true
+              }
+            },
+            required: ['documentId']
+          }
+        },
+        {
+          name: 'create_document',
+          description: 'Create a new document in Linear\n\nExamples:\n1. Basic document: {teamId: \"team-123\", title: \"Meeting Notes\", content: \"# Meeting Notes\\n\\nDiscussion points...\"}\n2. Project document: {teamId: \"team-123\", projectId: \"project-abc\", title: \"Design Spec\"}\n3. With icon: {teamId: \"team-123\", title: \"Design System\", icon: \"🎨\", content: \"...\"}\n\nReturns the newly created document with its ID, URL, and other metadata.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              teamId: {
+                type: 'string',
+                description: 'ID of the team this document belongs to'
+              },
+              title: {
+                type: 'string',
+                description: 'Title of the document'
+              },
+              content: {
+                type: 'string',
+                description: 'Content of the document in markdown format'
+              },
+              icon: {
+                type: 'string',
+                description: 'Emoji icon for the document'
+              },
+              projectId: {
+                type: 'string',
+                description: 'ID of the project to associate this document with'
+              },
+              isPublic: {
+                type: 'boolean',
+                description: 'Whether the document should be accessible outside the organization (default: false)',
+                default: false
+              }
+            },
+            required: ['teamId', 'title']
+          }
+        },
+        {
+          name: 'update_document',
+          description: 'Update an existing Linear document\n\nExamples:\n1. Update content: {documentId: \"doc-123\", content: \"# Updated Content\"}\n2. Update title: {documentId: \"doc-123\", title: \"New Title\"}\n3. Change icon: {documentId: \"doc-123\", icon: \"🚀\"}\n4. Change project: {documentId: \"doc-123\", projectId: \"project-456\"}\n5. Archive: {documentId: \"doc-123\", isArchived: true}\n\nYou only need to include the fields you want to update. Returns the updated document with its new values.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              documentId: {
+                type: 'string',
+                description: 'ID of the document to update'
+              },
+              title: {
+                type: 'string',
+                description: 'New title for the document'
+              },
+              content: {
+                type: 'string',
+                description: 'New content for the document in markdown format'
+              },
+              icon: {
+                type: 'string',
+                description: 'New emoji icon for the document'
+              },
+              projectId: {
+                type: 'string',
+                description: 'ID of the project to move this document to'
+              },
+              teamId: {
+                type: 'string',
+                description: 'ID of the team to move this document to'
+              },
+              isArchived: {
+                type: 'boolean',
+                description: 'Whether the document should be archived'
+              },
+              isPublic: {
+                type: 'boolean',
+                description: 'Whether the document should be accessible outside the organization'
+              }
+            },
+            required: ['documentId']
+          }
+        },
+        {
+          name: 'delete_document',
+          description: 'Delete an existing Linear document\n\nThis action permanently removes the document from Linear and cannot be undone. Returns a success message when the document is successfully deleted.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              documentId: {
+                type: 'string',
+                description: 'ID of the document to delete'
+              }
+            },
+            required: ['documentId']
+          }
+        },
       ],
     }));
 
@@ -358,6 +512,16 @@ class LinearServer {
             return await this.handleGetProjectUpdates(request.params.arguments);
           case 'create_project_update':
             return await this.handleCreateProjectUpdate(request.params.arguments);
+          case 'get_documents':
+            return await this.handleGetDocuments(request.params.arguments);
+          case 'get_document':
+            return await this.handleGetDocument(request.params.arguments);
+          case 'create_document':
+            return await this.handleCreateDocument(request.params.arguments);
+          case 'update_document':
+            return await this.handleUpdateDocument(request.params.arguments);
+          case 'delete_document':
+            return await this.handleDeleteDocument(request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -552,6 +716,101 @@ class LinearServer {
         {
           type: 'text',
           text: JSON.stringify(projectUpdate, null, 2)
+        }
+      ]
+    };
+  }
+
+  private async handleGetDocuments(args: unknown) {
+    if (!isGetDocumentsArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid get_documents arguments'
+      );
+    }
+
+    const documents = await this.linearAPI.getDocuments(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(documents, null, 2)
+        }
+      ]
+    };
+  }
+
+  private async handleGetDocument(args: unknown) {
+    if (!isGetDocumentArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid get_document arguments'
+      );
+    }
+
+    const document = await this.linearAPI.getDocument(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(document, null, 2)
+        }
+      ]
+    };
+  }
+
+  private async handleCreateDocument(args: unknown) {
+    if (!isCreateDocumentArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid create_document arguments'
+      );
+    }
+
+    const document = await this.linearAPI.createDocument(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(document, null, 2)
+        }
+      ]
+    };
+  }
+
+  private async handleUpdateDocument(args: unknown) {
+    if (!isUpdateDocumentArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid update_document arguments'
+      );
+    }
+
+    const document = await this.linearAPI.updateDocument(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(document, null, 2)
+        }
+      ]
+    };
+  }
+
+  private async handleDeleteDocument(args: unknown) {
+    if (!isDeleteDocumentArgs(args)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Invalid delete_document arguments'
+      );
+    }
+
+    const result = await this.linearAPI.deleteDocument(args);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2)
         }
       ]
     };
