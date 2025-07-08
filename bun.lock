@@ -4,7 +4,7 @@
     "": {
       "name": "linear-mcp",
       "dependencies": {
-        "@linear/sdk": "^44.1.0",
+        "@linear/sdk": "^46.0.0",
         "@modelcontextprotocol/sdk": "^1.13.1",
         "@types/node": "^24.0.3",
         "typescript": "^5.8.3",
@@ -71,7 +71,7 @@
 
     "@graphql-typed-document-node/core": ["@graphql-typed-document-node/core@3.2.0", "", { "peerDependencies": { "graphql": "^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ=="],
 
-    "@linear/sdk": ["@linear/sdk@44.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.0", "graphql": "^15.4.0", "isomorphic-unfetch": "^3.1.0" } }, "sha512-zMjmaiKYPCMnDDPxYKKtLdA8eaKO3pwpfDTWZzUqiFez+MSfZAzuFrSOqP4Wv02c3gYYamfGNE2vZdsAUzVUEg=="],
+    "@linear/sdk": ["@linear/sdk@46.0.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.0", "graphql": "^15.4.0", "isomorphic-unfetch": "^3.1.0" } }, "sha512-2zNcgZLZPOu52A5GTp9wRa7flypaJDTtA6YO1Fiv9xQkGr64ACneiCqUpbWCCNEUFTqY+mxH7iK6qDv4b+e1gA=="],
 
     "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.13.1", "", { "dependencies": { "ajv": "^6.12.6", "content-type": "^1.0.5", "cors": "^2.8.5", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "express": "^5.0.1", "express-rate-limit": "^7.5.0", "pkce-challenge": "^5.0.0", "raw-body": "^3.0.0", "zod": "^3.23.8", "zod-to-json-schema": "^3.24.1" } }, "sha512-8q6+9aF0yA39/qWT/uaIj6zTpC+Qu07DnN/lb9mjoquCJsAh6l3HyYqc9O3t2j7GilseOQOQimLg7W3By6jqvg=="],
 
