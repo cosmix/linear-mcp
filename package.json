@@ -21,7 +21,7 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "vite": "^7.0.2",
+    "vite": "^7.0.4",
     "@types/bun": "^1.2.18"
   },
   "peerDependencies": {
