@@ -241,10 +241,70 @@ describe('LinearAPIService - Cycle Filtering', () => {
       });
     });
 
-    // Skip the specific cycle test for now due to TypeScript issues
-    test.skip('filters issues by specific cycle', async () => {
-      // This test is skipped due to TypeScript issues with the CycleFilter interface
-      // The functionality is still tested in the other cycle filter tests
+    test('filters issues by specific cycle', async () => {
+      const testIssues = {
+        nodes: [{
+          id: 'issue-1',
+          identifier: 'TEST-1',
+          title: 'Test Issue',
+          priority: 1,
+          state: Promise.resolve({ name: 'In Progress' }),
+          assignee: Promise.resolve({ name: 'John Doe' }),
+          team: Promise.resolve({ name: 'Engineering' }),
+          labels: () => Promise.resolve({ nodes: [] }),
+        }],
+      };
+
+      const mockCycles = {
+        nodes: [
+          {
+            id: 'cycle-1',
+            number: 1,
+            name: 'Cycle 1',
+            startsAt: new Date('2025-01-01'),
+            endsAt: new Date('2025-01-14'),
+          },
+          {
+            id: 'cycle-2', 
+            number: 2,
+            name: 'Cycle 2',
+            startsAt: new Date('2025-01-15'),
+            endsAt: new Date('2025-01-28'),
+          }
+        ]
+      };
+
+      const mockTeam = {
+        id: 'team-123',
+        name: 'Engineering',
+        cycles: () => Promise.resolve(mockCycles)
+      };
+
+      mockClient.issues.mockImplementation(async () => testIssues);
+      mockClient.teams.mockImplementation(async () => ({
+        nodes: [mockTeam]
+      }));
+
+      await service.searchIssues({
+        query: '',
+        filter: {
+          cycle: {
+            type: 'specific',
+            teamId: 'team-123',
+            id: '2'  // Should be string ID, not cycleNumber
+          }
+        }
+      });
+
+      expect(mockClient.issues).toHaveBeenCalledWith({
+        filter: {
+          and: [{
+            cycle: {
+              id: { eq: 'cycle-2' }
+            }
+          }]
+        }
+      });
     });
 
     test('combines cycle filter with other filters', async () => {

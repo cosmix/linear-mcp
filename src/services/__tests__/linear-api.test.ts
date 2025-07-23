@@ -11,3 +11,8 @@ import './linear-api-team-management.test';
 import './linear-api-comment-management.test';
 import './linear-api-project-management.test';
 import './linear-api-data-processing.test';
+import './linear-api-cycle-assignment.test';
+import './linear-api-cycle-filtering.test';
+import './linear-api-utils.test';
+import './linear-base-service.test';
+import './linear-server.test';
