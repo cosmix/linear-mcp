@@ -1,7 +1,12 @@
 import { LinearClient } from '@linear/sdk';
 import { LinearUser } from '../../types/linear/base';
 
-export interface LinearClientInterface extends Pick<LinearClient, 'issue' | 'issues' | 'createIssue' | 'teams' | 'viewer' | 'deleteIssue' | 'project' | 'projects'> {}
+export interface LinearClientInterface extends Pick<LinearClient, 
+  'issue' | 'issues' | 'createIssue' | 
+  'teams' | 'viewer' | 'deleteIssue' | 
+  'project' | 'projects' | 
+  'document' | 'documents' | 'createDocument' | 'documentUpdate' | 'deleteDocument'
+> {}
 
 export abstract class LinearBaseService {
   protected client: LinearClientInterface;

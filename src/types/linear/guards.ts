@@ -1,5 +1,6 @@
 import { CreateCommentArgs } from './comment';
 import { isCycleFilter } from './cycle';
+import { CreateDocumentArgs, DeleteDocumentArgs, GetDocumentArgs, GetDocumentsArgs, UpdateDocumentArgs } from './document';
 import { CreateIssueArgs, DeleteIssueArgs, GetIssueArgs, UpdateIssueArgs } from './issue';
 import { CreateProjectUpdateArgs, GetProjectsArgs, GetProjectUpdatesArgs, ProjectUpdateHealthType } from './project';
 import { SearchIssuesArgs } from './search';
@@ -113,3 +114,67 @@ export const isCreateProjectUpdateArgs = (args: unknown): args is CreateProjectU
     Object.values(ProjectUpdateHealthType).includes((args as CreateProjectUpdateArgs).health as any)) &&
   (typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'undefined' ||
     typeof (args as CreateProjectUpdateArgs).isDiffHidden === 'boolean');
+
+// Document type guards
+export const isGetDocumentsArgs = (args: unknown): args is GetDocumentsArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  (typeof (args as GetDocumentsArgs).nameFilter === 'undefined' ||
+    typeof (args as GetDocumentsArgs).nameFilter === 'string') &&
+  (typeof (args as GetDocumentsArgs).includeArchived === 'undefined' ||
+    typeof (args as GetDocumentsArgs).includeArchived === 'boolean') &&
+  (typeof (args as GetDocumentsArgs).teamId === 'undefined' ||
+    typeof (args as GetDocumentsArgs).teamId === 'string') &&
+  (typeof (args as GetDocumentsArgs).projectId === 'undefined' ||
+    typeof (args as GetDocumentsArgs).projectId === 'string') &&
+  (typeof (args as GetDocumentsArgs).first === 'undefined' ||
+    typeof (args as GetDocumentsArgs).first === 'number') &&
+  (typeof (args as GetDocumentsArgs).after === 'undefined' ||
+    typeof (args as GetDocumentsArgs).after === 'string');
+
+export const isGetDocumentArgs = (args: unknown): args is GetDocumentArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as GetDocumentArgs).documentId === 'string' &&
+  (typeof (args as GetDocumentArgs).documentSlug === 'undefined' ||
+    typeof (args as GetDocumentArgs).documentSlug === 'string') &&
+  (typeof (args as GetDocumentArgs).includeFull === 'undefined' ||
+    typeof (args as GetDocumentArgs).includeFull === 'boolean');
+
+export const isCreateDocumentArgs = (args: unknown): args is CreateDocumentArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as CreateDocumentArgs).teamId === 'string' &&
+  typeof (args as CreateDocumentArgs).title === 'string' &&
+  (typeof (args as CreateDocumentArgs).content === 'undefined' ||
+    typeof (args as CreateDocumentArgs).content === 'string') &&
+  (typeof (args as CreateDocumentArgs).icon === 'undefined' ||
+    typeof (args as CreateDocumentArgs).icon === 'string') &&
+  (typeof (args as CreateDocumentArgs).projectId === 'undefined' ||
+    typeof (args as CreateDocumentArgs).projectId === 'string') &&
+  (typeof (args as CreateDocumentArgs).isPublic === 'undefined' ||
+    typeof (args as CreateDocumentArgs).isPublic === 'boolean');
+
+export const isUpdateDocumentArgs = (args: unknown): args is UpdateDocumentArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as UpdateDocumentArgs).documentId === 'string' &&
+  (typeof (args as UpdateDocumentArgs).title === 'undefined' ||
+    typeof (args as UpdateDocumentArgs).title === 'string') &&
+  (typeof (args as UpdateDocumentArgs).content === 'undefined' ||
+    typeof (args as UpdateDocumentArgs).content === 'string') &&
+  (typeof (args as UpdateDocumentArgs).icon === 'undefined' ||
+    typeof (args as UpdateDocumentArgs).icon === 'string') &&
+  (typeof (args as UpdateDocumentArgs).projectId === 'undefined' ||
+    typeof (args as UpdateDocumentArgs).projectId === 'string') &&
+  (typeof (args as UpdateDocumentArgs).teamId === 'undefined' ||
+    typeof (args as UpdateDocumentArgs).teamId === 'string') &&
+  (typeof (args as UpdateDocumentArgs).isArchived === 'undefined' ||
+    typeof (args as UpdateDocumentArgs).isArchived === 'boolean') &&
+  (typeof (args as UpdateDocumentArgs).isPublic === 'undefined' ||
+    typeof (args as UpdateDocumentArgs).isPublic === 'boolean');
+
+export const isDeleteDocumentArgs = (args: unknown): args is DeleteDocumentArgs =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof (args as DeleteDocumentArgs).documentId === 'string';
