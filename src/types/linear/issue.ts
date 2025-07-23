@@ -13,6 +13,7 @@ export interface CreateIssueArgs {
   priority?: number;
   assigneeId?: string;   // User ID or 'me' for self
   labelIds?: string[];  // Optional array of label IDs to attach
+  projectId?: string;  // Optional project ID to associate the issue with
 }
 
 export interface UpdateIssueArgs {

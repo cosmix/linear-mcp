@@ -202,7 +202,8 @@ export class IssueService extends LinearBaseService {
         priority: args.priority,
         assigneeId,
         parentId: args.parentId,
-        labelIds: args.labelIds
+        labelIds: args.labelIds,
+        projectId: args.projectId
       }).then(response => response.issue);
 
       if (!createdIssue) {

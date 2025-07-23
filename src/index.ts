@@ -88,6 +88,10 @@ class LinearServer {
                 items: {
                   type: 'string'
                 }
+              },
+              projectId: {
+                type: 'string',
+                description: 'ID of the project to associate the issue with',
               }
             },
             required: ['title'],
