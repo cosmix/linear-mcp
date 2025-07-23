@@ -46,6 +46,7 @@ export const isCreateIssueArgs = (args: unknown): args is CreateIssueArgs =>
   (typeof (args as CreateIssueArgs).assigneeId === 'undefined' || typeof (args as CreateIssueArgs).assigneeId === 'string') &&
   (typeof (args as CreateIssueArgs).labelIds === 'undefined' || (Array.isArray((args as CreateIssueArgs).labelIds) &&
     (args as CreateIssueArgs).labelIds!.every(id => typeof id === 'string'))) &&
+  (typeof (args as CreateIssueArgs).projectId === 'undefined' || typeof (args as CreateIssueArgs).projectId === 'string') &&
   // Ensure either teamId or parentId is provided
   ((args as CreateIssueArgs).teamId !== undefined || (args as CreateIssueArgs).parentId !== undefined);
 

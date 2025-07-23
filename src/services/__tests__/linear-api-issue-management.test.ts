@@ -88,7 +88,8 @@ describe('LinearAPIService - Issue Management', () => {
         priority: undefined,
         assigneeId: undefined,
         parentId: undefined,
-        labelIds: undefined
+        labelIds: undefined,
+        projectId: undefined
       });
 
       // Check the formatted result from getIssue
@@ -156,7 +157,8 @@ describe('LinearAPIService - Issue Management', () => {
         priority: undefined,
         assigneeId: 'current-user', // Expect resolved ID
         parentId: undefined,
-        labelIds: undefined
+        labelIds: undefined,
+        projectId: undefined
       });
     });
 
@@ -212,7 +214,8 @@ describe('LinearAPIService - Issue Management', () => {
         priority: undefined,
         assigneeId: undefined,
         parentId: 'TEST-1', // Passed correctly
-        labelIds: undefined
+        labelIds: undefined,
+        projectId: undefined
       });
 
       // Check the formatted result from getIssue
@@ -253,6 +256,54 @@ describe('LinearAPIService - Issue Management', () => {
         teamId: 'team-1',
         title: 'Test Issue'
       })).rejects.toThrow('MCP error -32603: Failed to create issue: No issue returned');
+    });
+
+    test('creates issue with projectId', async () => {
+      const mockCreatedIssue = {
+        id: 'issue-1',
+        identifier: 'TEST-1',
+        title: 'Test Issue',
+        description: 'Test Description',
+        priority: 1,
+        createdAt: new Date('2025-01-24'),
+        updatedAt: new Date('2025-01-24'),
+        state: Promise.resolve({ name: 'Backlog' }),
+        assignee: Promise.resolve(undefined),
+        team: Promise.resolve({ name: 'Engineering' }),
+        creator: Promise.resolve({ name: 'John Doe' }),
+        labels: () => Promise.resolve({ nodes: [] }),
+        parent: Promise.resolve(undefined),
+        children: () => Promise.resolve({ nodes: [] }),
+        relations: () => Promise.resolve({ nodes: [] }),
+      };
+
+      mockClient.createIssue.mockImplementation(async () => ({
+        success: true,
+        issue: mockCreatedIssue
+      }));
+      // Mock the getIssue call that happens after creation
+      mockClient.issue.mockImplementation(async () => mockCreatedIssue);
+
+      const result = await service.createIssue({
+        teamId: 'team-1',
+        title: 'Test Issue',
+        description: 'Test Description',
+        projectId: 'project-123'
+      });
+
+      expect(mockClient.createIssue).toHaveBeenCalledWith({
+        teamId: 'team-1',
+        title: 'Test Issue',
+        description: 'Test Description',
+        priority: undefined,
+        assigneeId: undefined,
+        parentId: undefined,
+        labelIds: undefined,
+        projectId: 'project-123'
+      });
+
+      expect(result.id).toBe('issue-1');
+      expect(result.identifier).toBe('TEST-1');
     });
   });
 
